@@ -81,6 +81,7 @@
     <div class="verd" id="sVerd"></div>
     <div class="subs" id="subs"></div>
     <button class="big" id="again">Commande suivante</button>
+    <button id="copie" style="margin-top:10px;background:none;border:none;color:#8b8073;font:inherit;font-size:11px;cursor:pointer;text-decoration:underline">copier le journal de la pierre</button>
   </div></div>
 </div>
 
@@ -124,6 +125,10 @@
     <div class="g" id="gPla">
       <div class="top"><span class="nm">Planéité</span><span><span class="vl">100.0</span><span class="dl"></span></span></div>
       <div class="bar"><div class="fill"></div></div>
+    </div>
+    <div class="g" id="gTps">
+      <div class="top"><span class="nm">Temps alloué</span><span class="vl" id="tpsTxt">0:00 / 0:00</span></div>
+      <div class="bar"><div class="fill"></div><div class="mark"></div></div>
     </div>
   </div>
 
@@ -764,13 +769,48 @@ function gauges() {
     mat: 100 * (left - ronge - entame) / START,
     tra: clamp(100 * (1 - aOter() / REF0) - 55 * sousCote, 0, 100),
     pla: planeity(DP),
-    surplus, over, left, sousCote,
+    surplus, over, left, sousCote, reste: aOter(),
   };
 }
 
 /* ---------- affichage des jauges ---------- */
 const GEL = { mat: document.getElementById("gMat"), tra: document.getElementById("gTra"),
-              pla: document.getElementById("gPla") };
+              pla: document.getElementById("gPla"), tps: document.getElementById("gTps") };
+
+/* ---------- le journal ---------- *
+ *  Un proto est un instrument de mesure : il doit laisser une trace lisible.
+ *  Tout est dans `window.cairnLog`, résumé dans la console à la fin de chaque
+ *  pierre, et copiable d'un bouton — de quoi diagnostiquer sans capture d'écran. */
+let journal = null;
+function ouvrirJournal() {
+  journal = { commande: cmd.nom, dims: cmd.dims.join("x"), vues: cmd.vues.slice(),
+              aOter: Math.round(REF0), alloue: Math.round(refTemps()),
+              secondesParOutil: [0, 0, 0], coupsParOutil: [0, 0, 0], courbe: [], fin: null };
+  window.cairnLog = journal;
+}
+function noterJournal(n) {
+  if (!journal) return;
+  journal.secondesParOutil[tool] += n / TOOLS[tool].cadence;
+  journal.coupsParOutil[tool] += n;
+  const der = journal.courbe[journal.courbe.length - 1];
+  if (!der || contact - der.t >= 2) {
+    const g = prev || gauges();
+    journal.courbe.push({ t: +contact.toFixed(1), outil: TOOLS[tool].nom,
+      cote: +g.tra.toFixed(1), fini: +g.pla.toFixed(1), matiere: +g.mat.toFixed(1) });
+  }
+}
+function fermerJournal(r) {
+  if (!journal) return;
+  journal.fin = { score: +r.score.toFixed(1), contact: +contact.toFixed(1), coups,
+    parts: Object.fromEntries(Object.entries(r.parts).map(([k, v]) => [k, +v.toFixed(1)])),
+    poids: cmd.poids, sousCote: +r.g.sousCote.toFixed(3), resteAOter: Math.round(r.g.reste) };
+  console.log(`%c${journal.commande} — ${journal.fin.score}%`, "font-weight:bold;font-size:14px");
+  console.log(`temps ${journal.fin.contact.toFixed(0)}s / ${journal.alloue}s alloué · ${coups} coups`);
+  console.table(TOOLS.map((t, k) => ({ outil: t.nom,
+    secondes: +journal.secondesParOutil[k].toFixed(1), coups: journal.coupsParOutil[k] })));
+  console.table([journal.fin.parts]);
+  console.log("journal complet : window.cairnLog");
+}
 
 function showGauges(g, old) {
   for (const k of ["mat", "tra", "pla"]) {
@@ -816,6 +856,19 @@ function majReste() {
 
 /* ---------- boucle ---------- */
 const EL_COUPS = document.getElementById("coups"), EL_TEMPS = document.getElementById("temps");
+const EL_TPS = document.getElementById("tpsTxt");
+const mmss = s => `${s / 60 | 0}:${String(s % 60 | 0).padStart(2, "0")}`;
+
+// Le temps pèse jusqu'à la moitié de la note : il doit se voir PENDANT, pas
+// seulement au verdict. Repère à l'allocation, la barre continue au-delà.
+function majTemps() {
+  const ref = refTemps();
+  EL_TPS.textContent = `${mmss(contact)} / ${mmss(ref)}`;
+  const b = GEL.tps.querySelector(".fill");
+  b.style.width = Math.min(100, 100 * contact / (ref * 1.6)) + "%";
+  b.style.background = contact <= ref ? "#7fb069" : contact <= ref * 1.35 ? "#a8925a" : "#c05c4e";
+  GEL.tps.querySelector(".mark").style.left = (100 / 1.6) + "%";
+}
 
 function frame(now) {
   requestAnimationFrame(frame);
@@ -827,6 +880,7 @@ function frame(now) {
     contact += dt;
     tapAcc += dt * TOOLS[tool].cadence;
     while (tapAcc >= 1 && frappes < 5) { tapAcc -= 1; tap(hoverI, hoverF); frappes++; }
+    if (frappes) noterJournal(frappes);
   }
   if (frappes) {
     majTops(); paintPick();
@@ -836,7 +890,8 @@ function frame(now) {
     showGauges(g, (now - shownAt > 450) ? prev : null);
     if (now - shownAt > 450) { prev = g; shownAt = now; }
     EL_COUPS.textContent = coups;
-    EL_TEMPS.textContent = `${contact / 60 | 0}:${String(contact % 60 | 0).padStart(2, "0")}`;
+    EL_TEMPS.textContent = mmss(contact);
+    majTemps();
     needDraw = true;
   }
 
@@ -890,12 +945,16 @@ window.addEventListener("keydown", e => {
  *  Le score n'a plus de barème fixe : il suit la commande. Une pierre de
  *  blocage ne se juge pas sur son fini, une pierre d'angle se juge d'abord sur
  *  son arête. C'est ce qui fait qu'il n'y a plus « une bonne méthode ». */
+// Temps alloué par la commande : proportionnel à ce qu'il y a réellement à ôter
+// (tolérance comprise), plus le fini demandé. Calé sur une main humaine, pas
+// sur le bot d'essai qui vise juste à chaque coup et ne balaie jamais dans le
+// vide — c'est l'erreur qui donnait « temps : 0 » à une pierre pourtant à 100.
+function refTemps() { return REF0 / 6.8 + cmd.vues.length * 20 + 10; }
+
 function noter() {
   const g = gauges(), p = cmd.poids;
-  // temps de référence proportionnel à ce qu'il y avait à ôter, plus une prime
-  // aux commandes qui n'exigent aucun fini : là, l'attente c'est la vitesse.
-  const ref = REF0 / 15 + cmd.vues.length * 9 + 4;
-  const eco = clamp(100 - Math.max(0, contact - ref) * 1.8, 0, 100);
+  const ref = refTemps();
+  const eco = clamp(100 - Math.max(0, contact - ref) * 0.8, 0, 100);
   const parts = { tra: g.tra, pla: g.pla, are: areteNette(), eco };
   let score = 0;
   for (const k in p) score += p[k] * parts[k];
@@ -905,7 +964,9 @@ function noter() {
 document.getElementById("finish").addEventListener("click", () => {
   if (done) return;
   done = true; hoverI = -1; working = false; needDraw = true;
-  const { g, eco, score, parts } = noter();
+  const r = noter();
+  const { parts, score } = r;
+  fermerJournal(r);
   document.getElementById("sScore").textContent = Math.round(score);
   // le bulletin ne montre que ce que la commande demandait
   const cases = Object.keys(cmd.poids).map(k => ({
@@ -913,25 +974,28 @@ document.getElementById("finish").addEventListener("click", () => {
     are: ["arête", parts.are], eco: ["temps", parts.eco] }[k]));
   document.getElementById("subs").innerHTML = cases.map(([nm, v]) =>
     `<div class="sub"><b>${Math.round(v)}</b>${nm}</div>`).join("");
-  document.getElementById("sVerd").textContent = verdict(g, parts, score);
+  document.getElementById("sVerd").textContent = verdict(r.g, parts, score);
   document.getElementById("end").classList.add("on");
 });
 
-// une phrase, sur le point faible — et elle parle de la commande, pas d'un barème
+// Une phrase sur le point faible. Elle est tirée des MÊMES chiffres que la
+// note — sans quoi elle peut la contredire, et c'est arrivé : « il reste de la
+// gangue » sur une pierre notée 100 à la cote, parce que la phrase lisait le
+// comptage brut pendant que la note lisait le comptage avec tolérance.
 function verdict(g, parts, score) {
   if (cmd.arete && parts.are < 55)
     return "L'arête est épaufrée. Sur une pierre d'angle, c'est rédhibitoire : elle finira ailleurs dans le mur.";
-  if (g.over > 70)
-    return "Tu as taillé dans la pierre elle-même. Elle servira, mais plus bas et plus petite.";
+  if (parts.tra < 70 && g.sousCote > 0.25)
+    return "Tu es passé sous la cote : la pierre est trop maigre. Elle servira, mais plus bas et plus petite.";
+  if (parts.tra < 70)
+    return "Tu t'es arrêté trop tôt : il reste de la gangue, la pierre n'est pas à la cote.";
   if (score > 88)
     return "Conforme à la commande, et proprement. Le maçon ne râlera pas.";
-  if (g.surplus > 60)
-    return "Tu t'es arrêté trop tôt : il reste de la gangue, la pierre n'est pas à la cote.";
-  if (!cmd.vues.length && parts.eco < 65)
-    return "Le compte y est — mais tu as dressé une pierre que personne ne verra jamais. Du temps donné au mur pour rien.";
-  if (parts.pla !== undefined && cmd.poids.pla && parts.pla < 65)
+  if (!cmd.vues.length && parts.eco < 85)
+    return "Elle est à la cote — mais tu as dressé une pierre que personne ne verra jamais. Tout ce temps est donné au mur pour rien.";
+  if (cmd.poids.pla && parts.pla < 65)
     return "À la cote, mais la face vue reste en dents de scie. La chasse a laissé sa marque, le ciseau n'a pas fini.";
-  if (parts.eco < 65)
+  if (parts.eco < 70)
     return "Le compte y est, mais tu as passé longtemps dessus. Un tailleur économise son geste.";
   return "Correcte. Rien de brillant, rien à jeter.";
 }
@@ -957,9 +1021,16 @@ function nouvellePierre() {
   document.getElementById("end").classList.remove("on");
   GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / START) + "%";
   const g = gauges(); showGauges(g, null); prev = g;
+  ouvrirJournal(); majTemps();
   majTops(); paintPick(); needDraw = true;
 }
 document.getElementById("again").addEventListener("click", nouvellePierre);
+document.getElementById("copie").addEventListener("click", e => {
+  const t = JSON.stringify(journal, null, 1);
+  navigator.clipboard.writeText(t).then(
+    () => { e.target.textContent = "journal copié"; },
+    () => { console.log(t); e.target.textContent = "presse-papier refusé — journal dans la console"; });
+});
 
 /* ---------- go ---------- */
 nouvellePierre();

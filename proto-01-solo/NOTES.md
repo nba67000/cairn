@@ -293,6 +293,63 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
+## Partie du 29/08 — trois bugs trouvés par la capture d'écran
+
+> « Bizarre le score final. »
+
+La capture montrait : **50 %**, verdict *« il reste de la gangue, la pierre n'est
+pas à la cote »*, et juste en dessous **« à la cote : 100 »**, jauge *Pierre
+dégagée* à **100,0**. Plus : 2:42 de taille, 1405 coups, jauge Planéité masquée
+(donc une pierre de blocage).
+
+### 1. Le verdict contredisait le score
+
+La phrase lisait le comptage **brut** des cubes de gangue restants pendant que
+la note lisait le comptage **avec tolérance**. Sur un blocage, laisser le
+dernier rang partout, c'est être à la cote — mais ça fait largement plus de 60
+cubes, donc la phrase criait à l'inachevé sur une pierre parfaite.
+
+Corrigé à la racine : **le verdict est désormais tiré des mêmes chiffres que la
+note.** Il ne peut plus la contredire.
+
+### 2. Le temps était calé sur un bot, pas sur une main
+
+L'allocation venait de mes bots d'essai — qui visent le bon cube à chaque coup,
+ne balaient jamais dans le vide et n'hésitent jamais. Un humain met environ
+**2,2 fois plus longtemps**. Résultat : 162 s contre 55 s alloués, pénalité
+saturée, **temps = 0**, et une pierre irréprochable notée 50.
+
+L'allocation est recalée sur une main humaine et la pente adoucie (0,8/s au lieu
+de 1,8). Les bots sont maintenant comparés **à temps humain** dans le banc
+d'essai, sinon le budget paraît généreux au bot et impitoyable au joueur.
+
+> Même état rejoué : **50 → 85**, avec le verdict utile
+> (« tu as dressé une pierre que personne ne verra jamais »).
+> Et 1405 coups en 162 s = 8,7/s, la cadence du ciseau : la partie confirme
+> que le temps était bien passé à dresser un blocage.
+
+### 3. Une dimension notée mais invisible
+
+Le temps pesait jusqu'à **la moitié de la note** et n'était affiché nulle part
+pendant la partie — seulement un compteur sans repère. Injouable. Il y a
+maintenant une jauge **« Temps alloué »** avec son repère, verte tant qu'on est
+dans le budget.
+
+### Et un journal, puisqu'il en fallait un
+
+Un proto est un instrument de mesure : il doit laisser une trace. Chaque pierre
+remplit `window.cairnLog` — commande, allocation, secondes et coups **par
+outil**, courbe des jauges toutes les 2 s, décomposition finale. Résumé imprimé
+dans la console à chaque « Pierre finie », et un lien **« copier le journal »**
+sur l'écran de fin.
+
+Ajout au banc d'essai : un **test de fumée** qui emprunte les vrais chemins du
+jeu (pose de commande, coups, boucle de rendu, écran de fin, commande suivante),
+et un **rejeu de la capture** qui reproduit l'état exact du bug pour vérifier la
+correction chiffre en main.
+
+---
+
 ## Réparation du NON — la commande fait la méthode
 
 Cause retenue : **il n'existait qu'une seule bonne méthode**, donc plus aucune
