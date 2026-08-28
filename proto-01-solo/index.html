@@ -16,7 +16,7 @@
     font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
     display:flex; overflow:hidden;
   }
-  #stage{flex:1;position:relative;min-width:0}
+  #stage{flex:1;position:relative;min-width:0;overflow:hidden}
   canvas{display:block;width:100%;height:100%;cursor:crosshair}
   #panel{
     width:312px;flex:none;background:var(--panel);border-left:1px solid var(--line);
@@ -99,7 +99,7 @@
     <button class="tool on" data-t="0"><b>Chasse</b><span>dégrossir, imprécis</span><i>1</i></button>
     <button class="tool" data-t="1"><b>Pointe</b><span>approcher du trait</span><i>2</i></button>
     <button class="tool" data-t="2"><b>Ciseau</b><span>dresser la face</span><i>3</i></button>
-    <p class="hint" id="tHint">Elle emporte tout, sans regarder. À garder loin du trait.</p>
+    <p class="hint" id="tHint">Elle emporte tout, sans regarder. À garder loin de la pierre.</p>
   </div>
 
   <div class="sect">
@@ -115,7 +115,7 @@
       <div class="bar"><div class="fill"></div><div class="mark"></div></div>
     </div>
     <div class="g" id="gTra">
-      <div class="top"><span class="nm">Proximité du trait</span><span><span class="vl">0.0</span><span class="dl"></span></span></div>
+      <div class="top"><span class="nm">Pierre dégagée</span><span><span class="vl">0.0</span><span class="dl"></span></span></div>
       <div class="bar"><div class="fill"></div></div>
     </div>
     <div class="g" id="gPla">
@@ -126,10 +126,13 @@
 
   <div class="sect">
     <h2>Lecture de la pierre</h2>
-    <div class="lg"><span class="sw" style="background:#685c4c"></span>croûte — à faire sauter</div>
-    <div class="lg"><span class="sw" style="background:#b08044"></span>dernier rang avant le trait</div>
-    <div class="lg"><span class="sw" style="background:#cec4b0"></span>la pierre — à garder</div>
-    <div class="lg"><span class="sw" style="background:#ba6054"></span>entaille : tu es passé dessous</div>
+    <div class="lg"><span class="sw" style="background:#b0bec7"></span><b style="color:#c3cfd6;font-weight:600">La pierre</b> — froide, déjà là, dessous</div>
+    <div class="lg"><span class="sw" style="background:#564839"></span>gangue épaisse — <b style="font-weight:600">chasse</b></div>
+    <div class="lg"><span class="sw" style="background:#9c7240"></span>plus que 2 rangs — <b style="font-weight:600">pointe</b></div>
+    <div class="lg"><span class="sw" style="background:#c99447"></span>dernier rang — <b style="font-weight:600">ciseau</b></div>
+    <div class="lg"><span class="sw" style="background:#c45c4e"></span>entaille : tu as mordu la pierre</div>
+    <p class="hint">Tout ce qui est <b style="color:#c3cfd6;font-weight:600">froid</b> est acquis.
+    Tout ce qui est <b style="color:#c99447;font-weight:600">chaud</b> reste à ôter.</p>
   </div>
 
   <div class="sect">
@@ -139,8 +142,8 @@
     <button class="big" id="finish">Pierre finie</button>
   </div>
 
-  <p class="foot">Le trait ocre est gravé dans la pierre : c'est la limite.<br>
-  Ce qui est ôté ne revient pas.</p>
+  <p class="foot">La pierre est déjà dans le bloc. Tu ne la fabriques pas,<br>
+  tu la dégages. Ce qui est ôté ne revient pas.</p>
 </aside>
 
 <script>
@@ -148,11 +151,15 @@
 /* ------------------------------------------------------------------ *
  *  Cairn — Proto 1 : tailler une pierre de A à Z (solo)
  *  Question testée : le geste est-il satisfaisant ? Ai-je envie d'une 2e ?
- *  Canvas 2D pur, iso fixe 45°, zéro dépendance. Instrument de mesure.
+ *
+ *  Principe de lecture : la pierre visée est VISIBLE dès la première seconde,
+ *  à travers une gangue translucide. On ne casse pas un mur en espérant qu'elle
+ *  soit dedans : on la voit, et on la dégage. La gangue est teintée par sa
+ *  profondeur restante, ce qui dit quel outil elle appelle.
  * ------------------------------------------------------------------ */
 
 /* ---------- la pierre ---------- */
-const W = 12, D = 12, H = 13;            // bloc brut
+const W = 11, D = 11, H = 12;            // bloc de carrière
 const KX = 7, KY = 7, KZ = 9;            // pierre visée : x 0..6, y 0..6, z 0..8
 const LIM = [W, D, H];
 const N = W * D * H;
@@ -160,38 +167,68 @@ const idx = (x, y, z) => x + y * W + z * W * D;
 
 const XS = new Uint8Array(N), YS = new Uint8Array(N), ZS = new Uint8Array(N);
 const keep = new Uint8Array(N);          // 1 = fait partie de la pierre visée
-const shell = new Uint8Array(N);         // 1 = croûte collée au trait (dernier rang)
+const gang = new Uint8Array(N);          // rangs de gangue restant au-dessus (1 = dernier rang)
 for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
   const i = idx(x, y, z);
   XS[i] = x; YS[i] = y; ZS[i] = z;
   keep[i] = (x < KX && y < KY && z < KZ) ? 1 : 0;
+  gang[i] = keep[i] ? 0 : Math.max(x - (KX - 1), y - (KY - 1), z - (KZ - 1));
 }
-for (let i = 0; i < N; i++) {
-  if (keep[i]) continue;
-  const x = XS[i], y = YS[i], z = ZS[i];
-  if ((x > 0 && keep[idx(x - 1, y, z)]) || (y > 0 && keep[idx(x, y - 1, z)]) ||
-      (z > 0 && keep[idx(x, y, z - 1)])) shell[i] = 1;
-}
-const KEEP0 = KX * KY * KZ, SURPLUS0 = N - KEEP0;
-
+const KEEP0 = KX * KY * KZ;
 const solid = new Uint8Array(N);
+const GR = new Float32Array(N);          // le grain : des lits sédimentaires, pas du bruit
+let START = 0, SURPLUS0 = 0;             // état du bloc au premier coup d'œil
 
 // ordre peintre : du fond vers l'avant en iso = somme x+y+z croissante
 const order = Array.from({ length: N }, (_, i) => i)
   .sort((a, b) => (XS[a] + YS[a] + ZS[a]) - (XS[b] + YS[b] + ZS[b]));
 
+/* Un bloc sorti de carrière n'est pas un cube parfait : ses faces sont mangées
+   irrégulièrement. Chaque pierre est donc un caillou différent — et les
+   premiers coups consistent à suivre la forme trouvée, pas à raboter un mur. */
+function quarry() {
+  solid.fill(1);
+  const ph = () => Math.random() * 6.2832;
+  for (let f = 0; f < 3; f++) {
+    const a = ph(), b = ph(), c = ph(), amp = 0.9 + Math.random() * 1.5;
+    for (let i = 0; i < N; i++) {
+      if (keep[i] || !solid[i]) continue;
+      const p = [XS[i], YS[i], ZS[i]], na = f;
+      const t1 = p[(f + 1) % 3], t2 = p[(f + 2) % 3];
+      const e = amp * (0.55 + 0.45 * Math.sin(t1 * 0.8 + a)) * (0.55 + 0.45 * Math.sin(t2 * 0.7 + b))
+              + 0.5 * Math.sin((t1 + t2) * 0.5 + c);
+      const creux = Math.max(0, Math.round(e));                 // 0 à 2 rangs mangés
+      if (p[na] >= LIM[na] - creux) solid[i] = 0;
+    }
+  }
+  // on ne descend jamais sous l'avant-dernier rang : il doit rester à tailler
+  for (let i = 0; i < N; i++) if (!keep[i] && gang[i] <= 1) solid[i] = 1;
+
+  const a = ph(), b = ph(), c = ph();
+  for (let i = 0; i < N; i++) {
+    const v = 0.5 + 0.30 * Math.sin(ZS[i] * 0.85 + a)
+                  + 0.12 * Math.sin((XS[i] * 0.6 + YS[i] * 0.45) + b)
+                  + 0.08 * Math.sin((XS[i] - YS[i]) * 0.9 + c);
+    GR[i] = 0.90 + 0.17 * Math.max(0, Math.min(1, v));
+  }
+  START = 0; SURPLUS0 = 0;
+  for (let i = 0; i < N; i++) if (solid[i]) { START++; if (!keep[i]) SURPLUS0++; }
+}
+
 /* ---------- outils ---------- *
- *  Chasse et pointe arrachent une bouchée sphérique : elles creusent, elles
- *  ne dressent pas. Le ciseau, lui, travaille comme le vrai : il court le long
- *  de la face et abat les bosses. C'est le seul qui rende une surface plane —
- *  et le seul avec lequel on peut passer sous le trait proprement.           */
+ *  Chasse et pointe arrachent une bouchée, dirigée vers l'intérieur de la face
+ *  frappée : elles creusent, elles ne dressent pas. Le ciseau, lui, travaille
+ *  comme le vrai : il court le long de la face et abat ce qui dépasse.        */
+// `plat` aplatit la bouchée dans l'axe de la face frappée : la chasse arrache
+// un éclat LARGE et PEU PROFOND, comme un vrai coup de chasse. C'est ce qui la
+// rend efficace pour balayer une face sans plonger droit dans la pierre.
 const TOOLS = [
-  { nom: "Chasse", kind: "creuse", r0: 1.90, r1: 3.40, jit: 0.80, rough: 0.42,
-    hint: "Elle emporte tout, sans regarder. À garder loin du trait." },
-  { nom: "Pointe", kind: "creuse", r0: 1.10, r1: 2.20, jit: 0.30, rough: 0.22,
+  { nom: "Chasse", kind: "creuse", r0: 1.80, r1: 3.30, jit: 0.55, rough: 0.40, push: 0.25, plat: 1.90,
+    hint: "Large et brutale, mais peu profonde. Elle balaie la gangue épaisse." },
+  { nom: "Pointe", kind: "creuse", r0: 1.10, r1: 2.20, jit: 0.28, rough: 0.22, push: 0.25, plat: 1.45,
     hint: "Elle approche. Elle laisse la surface grêlée : le ciseau finira." },
-  { nom: "Ciseau", kind: "dresse", r0: 0.55, r1: 2.95, jit: 0.85, rough: 0,
-    hint: "Il abat les bosses jusqu'au creux. Sur une face déjà plane, il descend d'un rang." },
+  { nom: "Ciseau", kind: "dresse", r0: 0.55, r1: 2.60, jit: 0.70, rough: 0,
+    hint: "Il rase ce qui dépasse du cube visé. Si plus rien ne dépasse, il emporte ce cube-là." },
 ];
 let tool = 0;
 
@@ -205,11 +242,13 @@ let charging = false, chargeT0 = 0, force = 0;
 let mx = 0, my = 0;
 let prev = null;
 let needDraw = true, lastSig = "";
+let shake = 0, tPrev = 0;
+const chips = [];                        // éclats et poussière
 
 /* ---------- canvas ---------- */
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const pk = document.createElement("canvas"), pctx = pk.getContext("2d", { willReadFrequently: true });
-let cw = 0, ch = 0, ox = 0, oy = 0, TW = 44, TH = 22, TZ = 26;
+let cw = 0, ch = 0, ox = 0, oy = 0, TW = 46, TH = 23, TZ = 27;
 
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -218,7 +257,7 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   pk.width = cw; pk.height = ch;
 
-  const bw = 44, bh = 22, bz = 26;
+  const bw = 46, bh = 23, bz = 27;
   const needW = (W + D - 2) * bw / 2 + bw;
   const needH = (W + D - 2) * bh / 2 + bh + bz + (H - 1) * bz;
   const s = Math.min(Math.max(Math.min((cw - 80) / needW, (ch - 80) / needH), 0.4), 1.7);
@@ -233,8 +272,6 @@ new ResizeObserver(resize).observe(cv);
 /* ---------- géométrie iso ---------- */
 const sxOf = (x, y) => ox + (x - y) * TW / 2;
 const syOf = (x, y, z) => oy + (x + y) * TH / 2 - z * TZ;
-const latX = (X, Y) => ox + (X - Y) * TW / 2;                 // coin du réseau
-const latY = (X, Y, Z) => oy + (X + Y) * TH / 2 - Z * TZ - TH / 2;
 
 function facePaths(x, y, z) {
   const sx = sxOf(x, y), sy = syOf(x, y, z), hw = TW / 2, hh = TH / 2;
@@ -251,22 +288,42 @@ function poly(c, p, fill, stroke) {
   if (stroke) { c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); }
 }
 
-/* ---------- couleurs ---------- */
-const C_CORE = [206, 196, 176], C_CRUST = [104, 92, 76],
-      C_EDGE = [176, 128, 68], C_SCAR = [186, 96, 84], C_PREV = [242, 230, 208];
+/* ---------- couleurs ---------- *
+ *  La gangue est teintée par ce qu'il reste à ôter dessous : c'est ça, le
+ *  trait. Pas une ligne en pointillé qui flotte — la matière elle-même dit
+ *  « ici il reste trois rangs », « ici c'est le dernier ».                    */
+// La pierre est FROIDE (calcaire frais, fraîchement fendu), la gangue est
+// CHAUDE (peau du bloc, oxydée). Deux familles qui ne se confondent jamais :
+// à n'importe quelle opacité, on sait toujours ce qui est pierre et ce qui
+// est encore à ôter. C'est ça qui remplace le trait en pointillé.
+const C_CORE = [176, 190, 199], C_SCAR = [196, 92, 78], C_PREV = [248, 244, 236];
+const C_GANG = [[219, 161, 64], [134, 97, 56], [88, 72, 54], [66, 57, 46]];    // 1, 2, 3, 4+ rangs
+const A_GANG = [0.58, 0.54, 0.45, 0.40];                                       // toujours assez fin pour voir la pierre dessous
+const gangRang = i => Math.min(Math.max(gang[i], 1), 4) - 1;
+const gangCol = i => C_GANG[gangRang(i)];
 const shade = (c, f, n) => `rgb(${(c[0] * f * n) | 0},${(c[1] * f * n) | 0},${(c[2] * f * n) | 0})`;
-const grain = i => 0.94 + (((i * 2654435761) >>> 0) % 1000) / 1000 * 0.12;
 
-// un cube « à garder » voisin d'un trou creusé dans la pierre = entaille visible
+// L'entaille, c'est le FOND de la plaie : un cube de la pierre qui se retrouve
+// à l'air libre alors qu'il devrait être couvert par de la pierre. Autrement
+// dit : ici, la face est descendue sous le trait. On ne marque pas le pourtour
+// du trou — seulement la surface qu'on n'aurait pas dû atteindre.
 function scarred(i) {
   const x = XS[i], y = YS[i], z = ZS[i];
-  return (x + 1 < KX && !solid[idx(x + 1, y, z)]) || (y + 1 < KY && !solid[idx(x, y + 1, z)]) ||
-         (z + 1 < KZ && !solid[idx(x, y, z + 1)]) || (x > 0 && !solid[idx(x - 1, y, z)]) ||
-         (y > 0 && !solid[idx(x, y - 1, z)]) || (z > 0 && !solid[idx(x, y, z - 1)]);
+  return (x + 1 < KX && !solid[idx(x + 1, y, z)]) ||
+         (y + 1 < KY && !solid[idx(x, y + 1, z)]) ||
+         (z + 1 < KZ && !solid[idx(x, y, z + 1)]);
 }
 
 /* ---------- rendu ---------- */
 let preview = new Set();
+
+function drawCube(i, ex, ey, ez, col, alpha, str, g) {
+  const f = facePaths(XS[i], YS[i], ZS[i]);
+  ctx.globalAlpha = alpha;
+  if (ez) poly(ctx, f.top,   shade(col, 1.00, g), str);
+  if (ey) poly(ctx, f.left,  shade(col, 0.70, g), str);
+  if (ex) poly(ctx, f.right, shade(col, 0.52, g), str);
+}
 
 function draw() {
   ctx.clearRect(0, 0, cw, ch);
@@ -277,42 +334,53 @@ function draw() {
   ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
   ctx.restore();
 
-  const edge = "rgba(0,0,0,.28)";
+  // Passe 1 — LA PIERRE, opaque, telle qu'elle serait si toute la gangue
+  // tombait maintenant. Toute la gangue est devant elle (elle est calée au
+  // fond du bloc), donc deux passes suffisent : pas de tri à faire.
   for (const i of order) {
-    if (!solid[i]) continue;
+    if (!solid[i] || !keep[i]) continue;
+    const x = XS[i], y = YS[i], z = ZS[i];
+    const ex = x + 1 >= KX || !solid[idx(x + 1, y, z)] || !keep[idx(x + 1, y, z)];
+    const ey = y + 1 >= KY || !solid[idx(x, y + 1, z)] || !keep[idx(x, y + 1, z)];
+    const ez = z + 1 >= KZ || !solid[idx(x, y, z + 1)] || !keep[idx(x, y, z + 1)];
+    if (!ex && !ey && !ez) continue;
+    const pv = preview.has(i);
+    drawCube(i, ex, ey, ez, pv ? C_PREV : (scarred(i) ? C_SCAR : C_CORE),
+      1, pv ? "rgba(255,255,255,.6)" : "rgba(0,0,0,.30)", pv ? 1 : GR[i]);
+  }
+
+  // Passe 2 — LA GANGUE, translucide : on voit la pierre au travers.
+  for (const i of order) {
+    if (!solid[i] || keep[i]) continue;
     const x = XS[i], y = YS[i], z = ZS[i];
     const ex = x + 1 >= W || !solid[i + 1];
     const ey = y + 1 >= D || !solid[i + W];
     const ez = z + 1 >= H || !solid[i + W * D];
-    if (!ex && !ey && !ez) continue;                     // cube enterré : invisible
-
-    let col, str = edge, g;
-    if (preview.has(i))  { col = C_PREV; str = "rgba(255,255,255,.55)"; g = 1; }
-    else { col = keep[i] ? (scarred(i) ? C_SCAR : C_CORE) : (shell[i] ? C_EDGE : C_CRUST); g = grain(i); }
-
-    const f = facePaths(x, y, z);
-    if (ez) poly(ctx, f.top,   shade(col, 1.00, g), str);
-    if (ey) poly(ctx, f.left,  shade(col, 0.70, g), str);
-    if (ex) poly(ctx, f.right, shade(col, 0.52, g), str);
+    if (!ex && !ey && !ez) continue;
+    const pv = preview.has(i);
+    drawCube(i, ex, ey, ez, pv ? C_PREV : gangCol(i), pv ? 1 : A_GANG[gangRang(i)],
+      pv ? "rgba(255,255,255,.6)" : "rgba(0,0,0,.18)", pv ? 1 : GR[i]);
   }
+  ctx.globalAlpha = 1;
 
-  drawTrait();
+  drawChips();
   if (charging) drawCharge();
 }
 
-// le trait : l'arête de la pierre visée, gravée, qu'on voit à travers la croûte
-function drawTrait() {
-  const X1 = KX, Y1 = KY, Z1 = KZ - 1, Z0 = -1;
-  const P = (X, Y, Z) => [latX(X, Y), latY(X, Y, Z)];
-  const seg = (a, b) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); };
-  ctx.save();
-  ctx.strokeStyle = "rgba(232,182,96,.78)"; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]);
-  seg(P(0, 0, Z1), P(X1, 0, Z1)); seg(P(X1, 0, Z1), P(X1, Y1, Z1));
-  seg(P(X1, Y1, Z1), P(0, Y1, Z1)); seg(P(0, Y1, Z1), P(0, 0, Z1));
-  seg(P(X1, 0, Z1), P(X1, 0, Z0)); seg(P(X1, Y1, Z1), P(X1, Y1, Z0));
-  seg(P(0, Y1, Z1), P(0, Y1, Z0));
-  seg(P(X1, 0, Z0), P(X1, Y1, Z0)); seg(P(X1, Y1, Z0), P(0, Y1, Z0));
-  ctx.restore();
+function drawChips() {
+  for (const p of chips) {
+    const k = 1 - p.t / p.life;
+    ctx.globalAlpha = Math.max(0, k) * p.a;
+    if (p.dust) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + 2.2 * (1 - k)), 0, 6.2832);
+      ctx.fillStyle = "rgba(196,182,158,.5)"; ctx.fill();
+    } else {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+      ctx.fillStyle = p.col; ctx.fillRect(-p.s, -p.s * .7, p.s * 2, p.s * 1.4);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawCharge() {
@@ -362,33 +430,32 @@ function pick(px, py) {
 }
 
 /* ---------- la morsure ---------- */
-// chasse / pointe : on arrache une sphère de matière autour du point frappé
+// chasse / pointe : on arrache une bouchée, poussée vers l'intérieur de la face
 function biteDig(i, t, f, real) {
-  const r = t.r0 + f * (t.r1 - t.r0), jit = t.jit * f;
+  const r = t.r0 + f * (t.r1 - t.r0), jit = t.jit * f, na = AXES[hoverF][0];
   const cx = XS[i], cy = YS[i], cz = ZS[i];
-  let px = cx, py = cy, pz = cz;
-  if (real && jit > 0) {
-    px += (Math.random() * 2 - 1) * jit;
-    py += (Math.random() * 2 - 1) * jit;
-    pz += (Math.random() * 2 - 1) * jit;
-  }
+  const p = [cx, cy, cz];
+  p[na] -= t.push * r;                                   // le coup entre dans la matière
+  if (real && jit > 0) for (let k = 0; k < 3; k++) p[k] += (Math.random() * 2 - 1) * jit;
   const R = Math.ceil(r + jit) + 1, out = [];
   for (let dz = -R; dz <= R; dz++) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
     const x = cx + dx, y = cy + dy, z = cz + dz;
     if (x < 0 || y < 0 || z < 0 || x >= W || y >= D || z >= H) continue;
     const j = idx(x, y, z);
     if (!solid[j]) continue;
+    const d = [x - p[0], y - p[1], z - p[2]];
+    d[na] *= t.plat;                                     // l'éclat est plat : large en surface, court en profondeur
     const rr = (real && t.rough) ? r * (1 - t.rough / 2 + Math.random() * t.rough) : r;
-    if (Math.hypot(x - px, y - py, z - pz) <= rr) out.push(j);
+    if (Math.hypot(d[0], d[1], d[2]) <= rr) out.push(j);
   }
   return out;
 }
 
 // ciseau : il court le long de la face et abat ce qui dépasse jusqu'au creux.
 // Si la face est déjà dressée, il n'a plus rien à abattre — alors il descend
-// d'un rang entier. C'est là qu'on passe sous le trait : le coup de trop.
+// d'un rang entier. C'est là qu'on mord la pierre : le coup de trop.
 function biteDress(i, t, f, real) {
-  const face = hoverF, [na, ta, tb] = AXES[face];
+  const [na, ta, tb] = AXES[hoverF];
   const r = t.r0 + f * (t.r1 - t.r0);
   const c0 = [XS[i], YS[i], ZS[i]];
   let ja = 0, jb = 0;
@@ -396,6 +463,9 @@ function biteDress(i, t, f, real) {
     const j = t.jit * (f - 0.65) / 0.35;
     ja = (Math.random() * 2 - 1) * j; jb = (Math.random() * 2 - 1) * j;
   }
+  // Le ciseau se règle sur le cube où on le POSE, pas sur le point le plus creux
+  // de la face : c'est un geste local. Tout ce qui dépasse de ce niveau saute.
+  const ref = c0[na];
   const R = Math.ceil(r) + 1, cols = [], p = [0, 0, 0];
   for (let da = -R; da <= R; da++) for (let db = -R; db <= R; db++) {
     if (Math.hypot(da - ja, db - jb) > r) continue;
@@ -407,13 +477,14 @@ function biteDress(i, t, f, real) {
     if (top >= 0) cols.push([a, b, top]);
   }
   if (!cols.length) return [i];
-  let m = Infinity;
-  for (const c of cols) if (c[2] < m) m = c[2];
-  const flat = cols.every(c => c[2] === m);
+
+  // s'il reste des bosses au-dessus du ciseau, on les abat jusqu'à son niveau ;
+  // s'il n'y a plus rien à abattre, c'est le rang du ciseau lui-même qui part.
+  const bosses = cols.some(c => c[2] > ref);
+  const floor = bosses ? ref : ref - 1;
   const out = [];
   for (const [a, b, top] of cols) {
-    if (!flat && top === m) continue;                    // le creux, on n'y touche pas
-    const floor = flat ? m - 1 : m;
+    if (top <= floor) continue;                          // déjà en dessous : on n'y touche pas
     p[ta] = a; p[tb] = b;
     let n = 0;
     for (let k = top; k > floor && n < 2; k--) {         // au plus 2 rangs par colonne
@@ -448,13 +519,46 @@ function shed() {
                 z > 0 && idx(x, y, z - 1), z + 1 < H && idx(x, y, z + 1)];
     for (const j of nb) if (j !== false && solid[j] && !seen[j]) { seen[j] = 1; st.push(j); }
   }
-  let n = 0;
-  for (let i = 0; i < N; i++) if (solid[i] && !seen[i]) { solid[i] = 0; n++; }
-  return n;
+  const fallen = [];
+  for (let i = 0; i < N; i++) if (solid[i] && !seen[i]) { solid[i] = 0; fallen.push(i); }
+  return fallen;
+}
+
+/* ---------- l'éclat qui part ---------- */
+function burst(list, f) {
+  let sx = 0, sy = 0;
+  for (const i of list) { sx += sxOf(XS[i], YS[i]); sy += syOf(XS[i], YS[i], ZS[i]); }
+  sx /= list.length; sy /= list.length;
+  const n = Math.min(20, 4 + (list.length * 0.7 | 0));
+  for (let k = 0; k < n; k++) {
+    const i = list[(Math.random() * list.length) | 0];
+    const c = keep[i] ? C_CORE : gangCol(i);
+    chips.push({
+      x: sxOf(XS[i], YS[i]) + (Math.random() - .5) * TW * .5,
+      y: syOf(XS[i], YS[i], ZS[i]) + (Math.random() - .5) * TZ * .5,
+      vx: (Math.random() - .5) * (140 + 260 * f), vy: -60 - Math.random() * (120 + 220 * f),
+      s: TW * (0.05 + Math.random() * 0.08), ang: Math.random() * 6.28, va: (Math.random() - .5) * 12,
+      t: 0, life: .45 + Math.random() * .5, a: 1,
+      col: `rgb(${c[0] * .8 | 0},${c[1] * .8 | 0},${c[2] * .8 | 0})`,
+    });
+  }
+  for (let k = 0; k < 3 + (f * 5 | 0); k++)
+    chips.push({ x: sx + (Math.random() - .5) * TW, y: sy + (Math.random() - .5) * TZ,
+      vx: (Math.random() - .5) * 40, vy: -20 - Math.random() * 30, s: TW * .12,
+      t: 0, life: .5 + Math.random() * .4, a: .55, dust: true, ang: 0, va: 0 });
+  shake = Math.min(7, 2 + f * 6);
+}
+function stepChips(dt) {
+  for (let k = chips.length - 1; k >= 0; k--) {
+    const p = chips[k];
+    p.t += dt;
+    if (p.t >= p.life) { chips.splice(k, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.ang += p.va * dt;
+    if (!p.dust) p.vy += 900 * dt; else { p.vy *= .94; p.vx *= .94; }
+  }
 }
 
 /* ---------- les jauges ---------- */
-// profondeur de chaque colonne des 3 faces travaillées, comptée depuis le trait
 function depths() {
   const faces = [];
   for (let face = 0; face < 3; face++) {
@@ -475,7 +579,7 @@ function depths() {
   return faces;
 }
 
-// Planéité = régularité locale de la surface là où on a déjà approché le trait.
+// Planéité = régularité locale de la surface là où on a déjà approché la pierre.
 // Elle ignore ce qui n'est pas encore dégrossi : elle juge le fini, pas l'avancement.
 function planeity() {
   let sum = 0, n = 0;
@@ -498,7 +602,7 @@ function gauges() {
     else if (keep[i]) over++;
   }
   return {
-    mat: 100 * left / N,
+    mat: 100 * left / START,
     tra: clamp(100 * (1 - surplus / SURPLUS0) - 0.9 * over, 0, 100),
     pla: planeity(),
     surplus, over, left,
@@ -508,7 +612,6 @@ function gauges() {
 /* ---------- affichage des jauges ---------- */
 const GEL = { mat: document.getElementById("gMat"), tra: document.getElementById("gTra"),
               pla: document.getElementById("gPla") };
-GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / N) + "%";
 
 function showGauges(g, old) {
   for (const k of ["mat", "tra", "pla"]) {
@@ -532,14 +635,22 @@ function showGauges(g, old) {
 
 /* ---------- boucle ---------- */
 const EL_FORCE = document.getElementById("forceFill"), EL_COUPS = document.getElementById("coups");
-function frame() {
+function frame(now) {
   requestAnimationFrame(frame);
-  if (charging) force = Math.pow(Math.min(1, (performance.now() - chargeT0) / 800), 1.15);
+  const dt = Math.min(.05, (now - tPrev) / 1000 || 0); tPrev = now;
+
+  if (charging) force = Math.pow(Math.min(1, (now - chargeT0) / 800), 1.15);
   EL_FORCE.style.width = (force * 100) + "%";
+
+  if (chips.length) stepChips(dt);
+  if (shake > .05) {
+    shake *= Math.pow(.02, dt * 6);
+    cv.style.transform = `translate(${(Math.random() - .5) * shake}px,${(Math.random() - .5) * shake}px)`;
+  } else if (shake) { shake = 0; cv.style.transform = ""; }
 
   const sig = `${hoverI}|${hoverF}|${tool}|${(force * 60) | 0}|${charging ? (mx | 0) + "," + (my | 0) : ""}`;
   if (sig !== lastSig) { lastSig = sig; needDraw = true; }
-  if (!needDraw) return;
+  if (!needDraw && !chips.length) return;
   preview = (!done && hoverI >= 0) ? new Set(bite(hoverI, force, false)) : new Set();
   draw();
   needDraw = false;
@@ -555,7 +666,7 @@ cv.addEventListener("pointermove", e => {
   if (h) { hoverI = h.i; hoverF = h.face; }
   else if (!charging) hoverI = -1;                       // en charge, on ne perd pas la cible
 });
-cv.addEventListener("pointerleave", () => { if (!charging) { hoverI = -1; } });
+cv.addEventListener("pointerleave", () => { if (!charging) hoverI = -1; });
 cv.addEventListener("pointerdown", e => {
   if (done || e.button !== 0 || hoverI < 0) return;
   cv.setPointerCapture(e.pointerId);
@@ -570,8 +681,10 @@ window.addEventListener("pointerup", () => {
 
 function strike(i, f) {
   const before = prev || gauges();
-  for (const j of bite(i, f, true)) solid[j] = 0;
-  shed();
+  const gone = bite(i, f, true);
+  for (const j of gone) solid[j] = 0;
+  const fallen = shed();
+  burst(gone.concat(fallen), f);
   coups++;
   EL_COUPS.textContent = coups;
   const g = gauges();
@@ -609,32 +722,33 @@ document.getElementById("finish").addEventListener("click", () => {
 
 // une phrase, sur le point faible — pas un bulletin scolaire
 function verdict(g, eco, score) {
-  if (g.over > 90)
-    return "Un côté est trop mangé : la pierre est passée sous le trait. Elle servira, mais plus bas dans le mur.";
+  if (g.over > 70)
+    return "Un côté est trop mangé : tu as taillé dans la pierre elle-même. Elle servira, mais plus bas dans le mur.";
   if (score > 88)
-    return "Franche, nette, au trait. Peu à redire — le maçon ne râlera pas.";
+    return "Franche, nette, dégagée jusqu'au trait. Peu à redire — le maçon ne râlera pas.";
   const low = Math.min(g.tra, g.pla, eco);
-  if (low === g.tra && g.surplus > 90)
-    return "Solide, mais tu t'es arrêté avant le trait : il reste de la croûte à faire sauter.";
+  if (low === g.tra && g.surplus > 60)
+    return "Solide, mais tu t'es arrêté trop tôt : il reste de la gangue collée à la pierre.";
   if (low === g.tra)
-    return "Le volume est là, mais tu as mordu sous le trait par endroits.";
+    return "Le volume est là, mais tu as mordu la pierre par endroits.";
   if (low === g.pla)
     return "Le volume y est ; la surface reste en dents de scie. La chasse a laissé sa marque, le ciseau n'a pas fini le travail.";
   return "Le compte y est, mais il a fallu beaucoup de coups pour l'obtenir. Un tailleur économise son geste.";
 }
 
-document.getElementById("again").addEventListener("click", () => {
-  solid.fill(1); coups = 0; done = false; prev = null; hoverI = -1;
-  document.getElementById("coups").textContent = "0";
+function nouvellePierre() {
+  quarry(); coups = 0; done = false; prev = null; hoverI = -1; chips.length = 0;
+  EL_COUPS.textContent = "0";
   document.getElementById("end").classList.remove("on");
+  GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / START) + "%";
   const g = gauges(); showGauges(g, null); prev = g;
   paintPick(); needDraw = true;
-});
+}
+document.getElementById("again").addEventListener("click", nouvellePierre);
 
 /* ---------- go ---------- */
-solid.fill(1);
+nouvellePierre();
 resize();
-const g0 = gauges(); showGauges(g0, null); prev = g0;
 requestAnimationFrame(frame);
 </script>
 </body>
