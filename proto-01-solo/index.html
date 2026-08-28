@@ -48,9 +48,6 @@
   .mark{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--amber);opacity:.85}
   .hint{font-size:10.5px;color:var(--dim);margin-top:6px}
 
-  #forceBar{height:14px}
-  #forceFill{transition:none;background:linear-gradient(90deg,#7a7263,#c08a3e 60%,#c05c4e)}
-
   .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);margin-bottom:4px}
   .sw{width:13px;height:13px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.4)}
 
@@ -96,16 +93,20 @@
 
   <div>
     <h2>Outil</h2>
-    <button class="tool on" data-t="0"><b>Chasse</b><span>dégrossir, imprécis</span><i>1</i></button>
+    <button class="tool on" data-t="0"><b>Chasse</b><span>large, grêle la surface</span><i>1</i></button>
     <button class="tool" data-t="1"><b>Pointe</b><span>approcher du trait</span><i>2</i></button>
     <button class="tool" data-t="2"><b>Ciseau</b><span>dresser la face</span><i>3</i></button>
-    <p class="hint" id="tHint">Elle emporte tout, sans regarder. À garder loin de la pierre.</p>
+    <p class="hint" id="tHint">Large et brutale. Elle abat la gangue épaisse et laisse la surface grêlée.</p>
   </div>
 
   <div class="sect">
-    <h2>Force du coup</h2>
-    <div class="bar" id="forceBar"><div class="fill" id="forceFill"></div></div>
-    <p class="hint">Maintiens le clic : plus tu tiens, plus tu manges.</p>
+    <h2>Sous l'outil</h2>
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;color:var(--dim)">Reste à ôter</span>
+      <span id="reste" style="font:600 15px ui-monospace,Consolas,monospace;color:var(--ink)">—</span>
+    </div>
+    <p class="hint">Maintiens et <b style="font-weight:600">balaie</b> : l'outil frappe en
+    cadence et rabote. C'est le passage qui creuse, pas le coup.</p>
   </div>
 
   <div class="sect">
@@ -136,8 +137,11 @@
   </div>
 
   <div class="sect">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:4px">
+      <span>Temps de taille</span><span id="temps" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0:00</span>
+    </div>
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:10px">
-      <span>Coups</span><span id="coups" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0</span>
+      <span>Coups de maillet</span><span id="coups" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0</span>
     </div>
     <button class="big" id="finish">Pierre finie</button>
   </div>
@@ -216,21 +220,29 @@ function quarry() {
 }
 
 /* ---------- outils ---------- *
- *  Chasse et pointe arrachent une bouchée, dirigée vers l'intérieur de la face
- *  frappée : elles creusent, elles ne dressent pas. Le ciseau, lui, travaille
- *  comme le vrai : il court le long de la face et abat ce qui dépasse.        */
-// `plat` aplatit la bouchée dans l'axe de la face frappée : la chasse arrache
-// un éclat LARGE et PEU PROFOND, comme un vrai coup de chasse. C'est ce qui la
-// rend efficace pour balayer une face sans plonger droit dans la pierre.
+ *  On ne fait pas SAUTER des cubes : on USE la surface. Chaque coup de maillet
+ *  emporte un copeau — une fraction de rang — sur l'empreinte de l'outil posé
+ *  à plat sur la face. Le cube ne tombe que lorsqu'il a été entièrement rongé.
+ *  C'est ce qui sépare tailler de casser : c'est le PASSAGE qui creuse, pas le
+ *  coup. On maintient, on balaie, l'outil frappe en cadence.
+ *
+ *  rayon    empreinte de l'outil, en colonnes, SUR la face frappée
+ *  usure    fraction de rang ôtée par coup, au centre de l'empreinte
+ *  cadence  coups de maillet par seconde tant qu'on maintient
+ *  grain    irrégularité de l'usure (la chasse laisse la surface grêlée)
+ *  niveleur ne touche qu'à ce qui dépasse du cube où l'outil est posé        */
 const TOOLS = [
-  { nom: "Chasse", kind: "creuse", r0: 1.80, r1: 3.30, jit: 0.55, rough: 0.40, push: 0.25, plat: 1.90,
-    hint: "Large et brutale, mais peu profonde. Elle balaie la gangue épaisse." },
-  { nom: "Pointe", kind: "creuse", r0: 1.10, r1: 2.20, jit: 0.28, rough: 0.22, push: 0.25, plat: 1.45,
-    hint: "Elle approche. Elle laisse la surface grêlée : le ciseau finira." },
-  { nom: "Ciseau", kind: "dresse", r0: 0.55, r1: 2.60, jit: 0.70, rough: 0,
-    hint: "Il rase ce qui dépasse du cube visé. Si plus rien ne dépasse, il emporte ce cube-là." },
+  { nom: "Chasse", rayon: 2.35, usure: 0.42, cadence: 3.6, grain: 0.75, niveleur: false,
+    hint: "Large et brutale. Elle abat la gangue épaisse et laisse la surface grêlée." },
+  { nom: "Pointe", rayon: 1.45, usure: 0.26, cadence: 6.5, grain: 0.40, niveleur: false,
+    hint: "Elle approche du trait sans tout emporter. Le ciseau finira." },
+  { nom: "Ciseau", rayon: 1.05, usure: 0.19, cadence: 11, grain: 0.06, niveleur: true, aplat: 2.4,
+    hint: "Il ne rabote que ce qui dépasse. Sur une face déjà dressée il n'a plus de bosse à prendre — alors il entame la face." },
 ];
 let tool = 0;
+
+const wear = new Float32Array(N);        // part de ce cube déjà partie en copeaux (0 → 1)
+const wearAx = new Uint8Array(N);        // dans quel axe on le ronge (pour le dessiner rongé)
 
 // face 0 = +x, 1 = +y, 2 = +z  →  [axe normal, tangente A, tangente B]
 const AXES = [[0, 1, 2], [1, 0, 2], [2, 0, 1]];
@@ -238,9 +250,9 @@ const AXES = [[0, 1, 2], [1, 0, 2], [2, 0, 1]];
 /* ---------- état de la session ---------- */
 let coups = 0, done = false;
 let hoverI = -1, hoverF = 2;
-let charging = false, chargeT0 = 0, force = 0;
+let working = false, tapAcc = 0, contact = 0;   // maintien, cadence, temps de taille
 let mx = 0, my = 0;
-let prev = null;
+let prev = null, shownAt = 0;
 let needDraw = true, lastSig = "";
 let shake = 0, tPrev = 0;
 const chips = [];                        // éclats et poussière
@@ -317,8 +329,16 @@ function scarred(i) {
 /* ---------- rendu ---------- */
 let preview = new Set();
 
+// Un cube à demi rongé est dessiné RECULÉ dans l'axe où on l'use : la surface
+// s'enfonce par fractions de cube au lieu de sauter d'un rang d'un coup. C'est
+// ce qui fait qu'on voit un copeau partir plutôt qu'une brique disparaître.
+function wpos(i) {
+  const p = [XS[i], YS[i], ZS[i]];
+  if (wear[i] > 0) p[wearAx[i]] -= wear[i] * 0.85;
+  return p;
+}
 function drawCube(i, ex, ey, ez, col, alpha, str, g) {
-  const f = facePaths(XS[i], YS[i], ZS[i]);
+  const p = wpos(i), f = facePaths(p[0], p[1], p[2]);
   ctx.globalAlpha = alpha;
   if (ez) poly(ctx, f.top,   shade(col, 1.00, g), str);
   if (ey) poly(ctx, f.left,  shade(col, 0.70, g), str);
@@ -364,7 +384,20 @@ function draw() {
   ctx.globalAlpha = 1;
 
   drawChips();
-  if (charging) drawCharge();
+  drawOutil();
+}
+
+// Le fer de l'outil, posé sur la face, à l'échelle de son empreinte. Il dit
+// où l'on travaille et sur quelle largeur — pas combien on va faire sauter.
+function drawOutil() {
+  if (done || hoverI < 0) return;
+  const t = TOOLS[tool], r = t.rayon * TW * 0.5;
+  ctx.save(); ctx.translate(mx, my);
+  ctx.scale(1, 0.62);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832);
+  ctx.strokeStyle = working ? "rgba(255,244,226,.85)" : "rgba(232,222,204,.45)";
+  ctx.lineWidth = working ? 2.4 : 1.4; ctx.stroke();
+  ctx.restore();
 }
 
 function drawChips() {
@@ -383,16 +416,6 @@ function drawChips() {
   ctx.globalAlpha = 1;
 }
 
-function drawCharge() {
-  ctx.save(); ctx.translate(mx, my);
-  ctx.beginPath(); ctx.arc(0, 0, 17, 0, 6.2832);
-  ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 4; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, 0, 17, -Math.PI / 2, -Math.PI / 2 + 6.2832 * force);
-  ctx.strokeStyle = force < .45 ? "#b8ac96" : force < .8 ? "#c08a3e" : "#c05c4e";
-  ctx.lineWidth = 3.5; ctx.lineCap = "round"; ctx.stroke();
-  ctx.restore();
-}
-
 /* ---------- picking : le buffer encode l'index du cube ET la face cliquée ---------- */
 function paintPick() {
   pctx.clearRect(0, 0, cw, ch);
@@ -403,7 +426,7 @@ function paintPick() {
     const ey = y + 1 >= D || !solid[i + W];
     const ez = z + 1 >= H || !solid[i + W * D];
     if (!ex && !ey && !ez) continue;
-    const v = i + 1, f = facePaths(x, y, z);
+    const p = wpos(i), v = i + 1, f = facePaths(p[0], p[1], p[2]);
     const c = fc => `rgb(${v & 255},${(v >> 8) & 255},${fc + 1})`;
     if (ez) poly(pctx, f.top,   c(2), null);
     if (ey) poly(pctx, f.left,  c(1), null);
@@ -429,79 +452,61 @@ function pick(px, py) {
   return best < 0 ? null : { i: (best / 4) | 0, face: best % 4 };
 }
 
-/* ---------- la morsure ---------- */
-// chasse / pointe : on arrache une bouchée, poussée vers l'intérieur de la face
-function biteDig(i, t, f, real) {
-  const r = t.r0 + f * (t.r1 - t.r0), jit = t.jit * f, na = AXES[hoverF][0];
-  const cx = XS[i], cy = YS[i], cz = ZS[i];
-  const p = [cx, cy, cz];
-  p[na] -= t.push * r;                                   // le coup entre dans la matière
-  if (real && jit > 0) for (let k = 0; k < 3; k++) p[k] += (Math.random() * 2 - 1) * jit;
-  const R = Math.ceil(r + jit) + 1, out = [];
-  for (let dz = -R; dz <= R; dz++) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-    const x = cx + dx, y = cy + dy, z = cz + dz;
-    if (x < 0 || y < 0 || z < 0 || x >= W || y >= D || z >= H) continue;
-    const j = idx(x, y, z);
-    if (!solid[j]) continue;
-    const d = [x - p[0], y - p[1], z - p[2]];
-    d[na] *= t.plat;                                     // l'éclat est plat : large en surface, court en profondeur
-    const rr = (real && t.rough) ? r * (1 - t.rough / 2 + Math.random() * t.rough) : r;
-    if (Math.hypot(d[0], d[1], d[2]) <= rr) out.push(j);
-  }
-  return out;
-}
+/* ---------- l'empreinte de l'outil et le coup de maillet ---------- */
 
-// ciseau : il court le long de la face et abat ce qui dépasse jusqu'au creux.
-// Si la face est déjà dressée, il n'a plus rien à abattre — alors il descend
-// d'un rang entier. C'est là qu'on mord la pierre : le coup de trop.
-function biteDress(i, t, f, real) {
-  const [na, ta, tb] = AXES[hoverF];
-  const r = t.r0 + f * (t.r1 - t.r0);
-  const c0 = [XS[i], YS[i], ZS[i]];
-  let ja = 0, jb = 0;
-  if (real && f > 0.65) {
-    const j = t.jit * (f - 0.65) / 0.35;
-    ja = (Math.random() * 2 - 1) * j; jb = (Math.random() * 2 - 1) * j;
-  }
-  // Le ciseau se règle sur le cube où on le POSE, pas sur le point le plus creux
-  // de la face : c'est un geste local. Tout ce qui dépasse de ce niveau saute.
-  const ref = c0[na];
-  const R = Math.ceil(r) + 1, cols = [], p = [0, 0, 0];
+// L'outil est posé À PLAT sur la face frappée. Son empreinte est un disque de
+// colonnes ; sur chaque colonne il n'attaque que le cube du dessus — la peau.
+// Il ne creuse jamais un trou sphérique dans la masse : il rabote une surface.
+function empreinte(i, face, t) {
+  const [na, ta, tb] = AXES[face];
+  const c0 = [XS[i], YS[i], ZS[i]], ref = c0[na];
+  const R = Math.ceil(t.rayon), out = [], p = [0, 0, 0];
   for (let da = -R; da <= R; da++) for (let db = -R; db <= R; db++) {
-    if (Math.hypot(da - ja, db - jb) > r) continue;
+    const d = Math.hypot(da, db);
+    if (d > t.rayon) continue;
     const a = c0[ta] + da, b = c0[tb] + db;
     if (a < 0 || b < 0 || a >= LIM[ta] || b >= LIM[tb]) continue;
     p[ta] = a; p[tb] = b;
     let top = -1;
     for (let k = LIM[na] - 1; k >= 0; k--) { p[na] = k; if (solid[idx(p[0], p[1], p[2])]) { top = k; break; } }
-    if (top >= 0) cols.push([a, b, top]);
-  }
-  if (!cols.length) return [i];
-
-  // s'il reste des bosses au-dessus du ciseau, on les abat jusqu'à son niveau ;
-  // s'il n'y a plus rien à abattre, c'est le rang du ciseau lui-même qui part.
-  const bosses = cols.some(c => c[2] > ref);
-  const floor = bosses ? ref : ref - 1;
-  const out = [];
-  for (const [a, b, top] of cols) {
-    if (top <= floor) continue;                          // déjà en dessous : on n'y touche pas
-    p[ta] = a; p[tb] = b;
-    let n = 0;
-    for (let k = top; k > floor && n < 2; k--) {         // au plus 2 rangs par colonne
-      p[na] = k; const j = idx(p[0], p[1], p[2]);
-      if (solid[j]) { out.push(j); n++; }
-    }
+    if (top < 0) continue;
+    if (t.niveleur && top < ref) continue;   // le ciseau ne descend pas dans le creux
+    p[na] = top;
+    out.push([idx(p[0], p[1], p[2]), d / t.rayon, na]);
   }
   return out;
 }
 
-function bite(i, f, real) {
-  const t = TOOLS[tool];
-  const out = t.kind === "dresse" ? biteDress(i, t, f, real) : biteDig(i, t, f, real);
-  // un coup fait toujours quelque chose — mais le ciseau, lui, abat les bosses :
-  // s'il en a trouvé, il ne va pas creuser en plus le creux où on a cliqué.
-  if (!out.length || (t.kind !== "dresse" && !out.includes(i))) out.push(i);
-  return out;
+// Un coup de maillet : il ronge, il ne supprime pas. Un cube ne tombe que
+// lorsqu'il a été mangé en entier — souvent au bout de plusieurs passages.
+function tap(i, face) {
+  const t = TOOLS[tool], emp = empreinte(i, face, t);
+  if (!emp.length) return 0;
+
+  // Le ciseau ne prend que les bosses. Sur une face DÉJÀ dressée il n'y a plus
+  // de bosse : il cisaille alors un copeau plein, et la face descend vite.
+  // C'est là qu'est le coup de trop — et il est volontaire, on voit le chiffre.
+  let mordant = 1;
+  if (t.niveleur) {
+    const ref = [XS[i], YS[i], ZS[i]][AXES[face][0]];
+    const na = AXES[face][0];
+    if (!emp.some(([j]) => [XS[j], YS[j], ZS[j]][na] > ref)) mordant = t.aplat;
+  }
+
+  const partis = [];
+  for (const [j, u, na] of emp) {
+    const bord = 1 - 0.55 * u * u;                                  // l'outil mord moins sur ses bords
+    const bruit = t.grain ? (1 - t.grain / 2 + Math.random() * t.grain) : 1;
+    wearAx[j] = na;
+    wear[j] += t.usure * mordant * bord * bruit;
+    if (wear[j] >= 1) { solid[j] = 0; wear[j] = 0; partis.push(j); }
+  }
+  const tombes = partis.length ? shed() : [];
+  coups++;
+  if (partis.length || tombes.length) copeaux(partis.concat(tombes));
+  else poussiere(i);
+  shake = Math.max(shake, 0.8 + t.usure * 3.2);
+  return partis.length + tombes.length;
 }
 
 // ce qui n'est plus porté par le sol tombe : l'éclat part, il ne revient pas
@@ -524,29 +529,31 @@ function shed() {
   return fallen;
 }
 
-/* ---------- l'éclat qui part ---------- */
-function burst(list, f) {
-  let sx = 0, sy = 0;
-  for (const i of list) { sx += sxOf(XS[i], YS[i]); sy += syOf(XS[i], YS[i], ZS[i]); }
-  sx /= list.length; sy /= list.length;
-  const n = Math.min(20, 4 + (list.length * 0.7 | 0));
+/* ---------- copeaux et poussière ---------- *
+ *  Un coup de maillet ne fait pas exploser la pierre : il détache un copeau et
+ *  soulève un peu de poussière. Petit, répété, continu.                       */
+function copeaux(list) {
+  const n = Math.min(9, 2 + list.length);
   for (let k = 0; k < n; k++) {
     const i = list[(Math.random() * list.length) | 0];
     const c = keep[i] ? C_CORE : gangCol(i);
     chips.push({
       x: sxOf(XS[i], YS[i]) + (Math.random() - .5) * TW * .5,
       y: syOf(XS[i], YS[i], ZS[i]) + (Math.random() - .5) * TZ * .5,
-      vx: (Math.random() - .5) * (140 + 260 * f), vy: -60 - Math.random() * (120 + 220 * f),
-      s: TW * (0.05 + Math.random() * 0.08), ang: Math.random() * 6.28, va: (Math.random() - .5) * 12,
-      t: 0, life: .45 + Math.random() * .5, a: 1,
+      vx: (Math.random() - .5) * 190, vy: -55 - Math.random() * 130,
+      s: TW * (0.035 + Math.random() * 0.055), ang: Math.random() * 6.28, va: (Math.random() - .5) * 14,
+      t: 0, life: .40 + Math.random() * .40, a: 1,
       col: `rgb(${c[0] * .8 | 0},${c[1] * .8 | 0},${c[2] * .8 | 0})`,
     });
   }
-  for (let k = 0; k < 3 + (f * 5 | 0); k++)
-    chips.push({ x: sx + (Math.random() - .5) * TW, y: sy + (Math.random() - .5) * TZ,
-      vx: (Math.random() - .5) * 40, vy: -20 - Math.random() * 30, s: TW * .12,
-      t: 0, life: .5 + Math.random() * .4, a: .55, dust: true, ang: 0, va: 0 });
-  shake = Math.min(7, 2 + f * 6);
+  poussiere(list[0]);
+}
+function poussiere(i) {
+  const x = sxOf(XS[i], YS[i]), y = syOf(XS[i], YS[i], ZS[i]);
+  for (let k = 0; k < 2; k++)
+    chips.push({ x: x + (Math.random() - .5) * TW * .7, y: y + (Math.random() - .5) * TZ * .7,
+      vx: (Math.random() - .5) * 34, vy: -14 - Math.random() * 24, s: TW * .085,
+      t: 0, life: .35 + Math.random() * .35, a: .40, dust: true, ang: 0, va: 0 });
 }
 function stepChips(dt) {
   for (let k = chips.length - 1; k >= 0; k--) {
@@ -568,9 +575,13 @@ function depths() {
       const row = [];
       for (let b = 0; b < K[tb]; b++) {
         p[ta] = a; p[tb] = b;
-        let m = -1;
-        for (let k = LIM[na] - 1; k >= 0; k--) { p[na] = k; if (solid[idx(p[0], p[1], p[2])]) { m = k; break; } }
-        row.push(m < 0 ? -K[na] : m - (K[na] - 1));
+        let m = -1, j = -1;
+        for (let k = LIM[na] - 1; k >= 0; k--) {
+          p[na] = k; const q = idx(p[0], p[1], p[2]);
+          if (solid[q]) { m = k; j = q; break; }
+        }
+        // l'usure compte : la surface réelle est fractionnaire, pas en marches
+        row.push(m < 0 ? -K[na] : (m - wear[j]) - (K[na] - 1));
       }
       grid.push(row);
     }
@@ -633,14 +644,49 @@ function showGauges(g, old) {
     g.pla > 70 ? "#7fb069" : g.pla > 40 ? "#a8925a" : "#c05c4e";
 }
 
+/* ---------- ce qu'il reste à ôter sous l'outil ---------- */
+// Le tailleur mesure avant de frapper. Ce chiffre remplace le trait tracé :
+// il dit, au cube près, où l'on en est par rapport à la pierre.
+function resteSousOutil() {
+  if (hoverI < 0) return null;
+  const na = AXES[hoverF][0], K = [KX, KY, KZ][na];
+  return (wpos(hoverI)[na] + 1) - K;                      // > 0 : gangue ; ≤ 0 : dans la pierre
+}
+function majReste() {
+  const el = document.getElementById("reste"), d = resteSousOutil();
+  if (d === null) { el.textContent = "—"; el.style.color = "var(--dim)"; return; }
+  if (d > 0.05)      { el.textContent = d.toFixed(1).replace(".", ",") + " rang" + (d >= 2 ? "s" : "");
+                       el.style.color = d < 1.05 ? "#d9a24f" : "var(--ink)"; }
+  else if (d > -0.05){ el.textContent = "au trait";        el.style.color = "#7fb069"; }
+  else               { el.textContent = "sous le trait de " + (-d).toFixed(1).replace(".", ",");
+                       el.style.color = "var(--bad)"; }
+}
+
 /* ---------- boucle ---------- */
-const EL_FORCE = document.getElementById("forceFill"), EL_COUPS = document.getElementById("coups");
+const EL_COUPS = document.getElementById("coups"), EL_TEMPS = document.getElementById("temps");
+
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - tPrev) / 1000 || 0); tPrev = now;
 
-  if (charging) force = Math.pow(Math.min(1, (now - chargeT0) / 800), 1.15);
-  EL_FORCE.style.width = (force * 100) + "%";
+  // On maintient, l'outil frappe en cadence. C'est le passage qui creuse.
+  let frappes = 0;
+  if (working && !done && hoverI >= 0) {
+    contact += dt;
+    tapAcc += dt * TOOLS[tool].cadence;
+    while (tapAcc >= 1 && frappes < 5) { tapAcc -= 1; tap(hoverI, hoverF); frappes++; }
+  }
+  if (frappes) {
+    paintPick();
+    const h = pick(mx, my);                               // la surface a bougé sous l'outil
+    if (h) { hoverI = h.i; hoverF = h.face; }
+    const g = gauges();
+    showGauges(g, (now - shownAt > 450) ? prev : null);
+    if (now - shownAt > 450) { prev = g; shownAt = now; }
+    EL_COUPS.textContent = coups;
+    EL_TEMPS.textContent = `${contact / 60 | 0}:${String(contact % 60 | 0).padStart(2, "0")}`;
+    needDraw = true;
+  }
 
   if (chips.length) stepChips(dt);
   if (shake > .05) {
@@ -648,10 +694,11 @@ function frame(now) {
     cv.style.transform = `translate(${(Math.random() - .5) * shake}px,${(Math.random() - .5) * shake}px)`;
   } else if (shake) { shake = 0; cv.style.transform = ""; }
 
-  const sig = `${hoverI}|${hoverF}|${tool}|${(force * 60) | 0}|${charging ? (mx | 0) + "," + (my | 0) : ""}`;
-  if (sig !== lastSig) { lastSig = sig; needDraw = true; }
+  const sig = `${hoverI}|${hoverF}|${tool}|${working}|${mx | 0},${my | 0}`;
+  if (sig !== lastSig) { lastSig = sig; needDraw = true; majReste(); }
   if (!needDraw && !chips.length) return;
-  preview = (!done && hoverI >= 0) ? new Set(bite(hoverI, force, false)) : new Set();
+  preview = (!done && hoverI >= 0)
+    ? new Set(empreinte(hoverI, hoverF, TOOLS[tool]).map(e => e[0])) : new Set();
   draw();
   needDraw = false;
 }
@@ -664,37 +711,15 @@ cv.addEventListener("pointermove", e => {
   if (done) { hoverI = -1; return; }
   const h = pick(mx, my);
   if (h) { hoverI = h.i; hoverF = h.face; }
-  else if (!charging) hoverI = -1;                       // en charge, on ne perd pas la cible
+  else hoverI = -1;                                       // sorti de la pierre : l'outil ne mord plus
 });
-cv.addEventListener("pointerleave", () => { if (!charging) hoverI = -1; });
+cv.addEventListener("pointerleave", () => { if (!working) hoverI = -1; });
 cv.addEventListener("pointerdown", e => {
-  if (done || e.button !== 0 || hoverI < 0) return;
+  if (done || e.button !== 0) return;
   cv.setPointerCapture(e.pointerId);
-  charging = true; chargeT0 = performance.now(); force = 0;
+  working = true; tapAcc = 1;                             // le premier coup part tout de suite
 });
-window.addEventListener("pointerup", () => {
-  if (!charging) return;
-  charging = false;
-  const f = force; force = 0;
-  if (hoverI >= 0 && !done) strike(hoverI, f);
-});
-
-function strike(i, f) {
-  const before = prev || gauges();
-  const gone = bite(i, f, true);
-  for (const j of gone) solid[j] = 0;
-  const fallen = shed();
-  burst(gone.concat(fallen), f);
-  coups++;
-  EL_COUPS.textContent = coups;
-  const g = gauges();
-  showGauges(g, before);
-  prev = g;
-  paintPick();
-  const h = pick(mx, my);
-  hoverI = h ? h.i : -1; if (h) hoverF = h.face;
-  needDraw = true;
-}
+window.addEventListener("pointerup", () => { working = false; tapAcc = 0; });
 
 document.querySelectorAll(".tool").forEach(b => b.addEventListener("click", () => {
   tool = +b.dataset.t;
@@ -708,10 +733,10 @@ window.addEventListener("keydown", e => {
 /* ---------- fin ---------- */
 document.getElementById("finish").addEventListener("click", () => {
   if (done) return;
-  done = true; hoverI = -1; charging = false; needDraw = true;
-  const g = prev || gauges();
-  const eco = clamp(100 - Math.max(0, coups - 70) * 0.8, 0, 100);
-  const score = 0.5 * g.tra + 0.3 * g.pla + 0.2 * eco;
+  done = true; hoverI = -1; working = false; needDraw = true;
+  const g = gauges();
+  const eco = clamp(100 - Math.max(0, contact - 105) * 0.55, 0, 100);
+  const score = 0.6 * g.tra + 0.25 * g.pla + 0.15 * eco;
   document.getElementById("sScore").textContent = Math.round(score);
   document.getElementById("sTrait").textContent = Math.round(g.tra);
   document.getElementById("sPlan").textContent = Math.round(g.pla);
@@ -733,12 +758,13 @@ function verdict(g, eco, score) {
     return "Le volume est là, mais tu as mordu la pierre par endroits.";
   if (low === g.pla)
     return "Le volume y est ; la surface reste en dents de scie. La chasse a laissé sa marque, le ciseau n'a pas fini le travail.";
-  return "Le compte y est, mais il a fallu beaucoup de coups pour l'obtenir. Un tailleur économise son geste.";
+  return "Le compte y est, mais tu as passé longtemps dessus. Un tailleur économise son geste.";
 }
 
 function nouvellePierre() {
-  quarry(); coups = 0; done = false; prev = null; hoverI = -1; chips.length = 0;
-  EL_COUPS.textContent = "0";
+  quarry(); wear.fill(0); wearAx.fill(0);
+  coups = 0; contact = 0; done = false; prev = null; hoverI = -1; working = false; chips.length = 0;
+  EL_COUPS.textContent = "0"; EL_TEMPS.textContent = "0:00";
   document.getElementById("end").classList.remove("on");
   GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / START) + "%";
   const g = gauges(); showGauges(g, null); prev = g;

@@ -53,6 +53,64 @@ trop mangé »).
 
 ---
 
+## Retour de partie n°2 → on change le VERBE
+
+> « Ça reste un casse-brique, inspire-toi de Michelangelo: Stonemason Simulator. »
+
+Deux tours de correction visuelle n'avaient rien changé — preuve que le problème
+n'était pas la lecture mais **le geste lui-même**. Cliquer pour faire disparaître
+un paquet de cubes *est* un casse-brique, quelle que soit la couleur.
+
+Ce que fait réellement Michelangelo (vérifié, pas supposé) : c'est **voxel** et
+**au clic**, décrit comme « *tap away* », « *shaving away at blocks of stone* »,
+« meditative ». Donc la différence n'était pas clic-contre-glisser. Elle était
+dans le **rapport coup / matière** :
+
+| | Ma version 2 | Michelangelo |
+|---|---|---|
+| Rythme | ~50 coups isolés | des centaines de petits coups |
+| Par coup | un paquet de 20-40 cubes disparaît | un **copeau** |
+| Rituel | charger, viser, relâcher | on tape, en cadence |
+| Sensation | démolir | raboter |
+
+Je faisais **peu de coups qui suppriment de gros paquets**, avec une cérémonie
+de charge à chaque fois. C'est la définition du casse-brique.
+
+**Le nouveau verbe : on maintient et on balaie.** L'outil frappe en cadence
+(3,6 coups/s pour la chasse, 11 pour le ciseau) et chaque coup **use** la
+surface d'une fraction de rang. Un cube ne tombe que lorsqu'il a été
+entièrement rongé, souvent après plusieurs passages. C'est le *passage* qui
+creuse, plus le coup.
+
+Conséquences :
+
+1. **L'outil est posé à plat sur la face**, il n'attaque que la peau — le cube
+   du dessus de chaque colonne de son empreinte. Il ne creuse plus jamais un
+   trou sphérique dans la masse : il rabote une surface.
+2. **Granularité sous-cube.** Un cube à demi rongé est dessiné *reculé* d'autant
+   dans l'axe où on l'use. La surface s'enfonce par fractions au lieu de sauter
+   d'un rang : on voit un copeau partir, pas une brique disparaître. C'est ça
+   qui tue l'effet Lego.
+3. **La cérémonie de charge est supprimée.** Plus de jauge de force, plus de
+   « viser-charger-lâcher ». À la place, un chiffre de tailleur : **« reste à
+   ôter : 1,4 rang »** sous l'outil. On mesure, puis on rabote.
+4. **Le frisson devient continu.** Le ciseau ne prend que les bosses ; sur une
+   face déjà dressée il n'a plus de bosse, alors il entame la face — 2,4× plus
+   vite. Traîner 3 s de trop coûte 7 points, 8 s en coûtent 34. Ce n'est plus
+   un pari à l'aveugle, c'est un « arrête-toi maintenant » qu'on sent monter.
+5. **Le rythme est celui du métier** : ~300 à 500 coups de maillet, 70 à 90 s
+   de contact. On tape, en continu, et la pierre sort.
+
+### Ce qui reste ouvert : le son
+
+Le brief interdit le son. Pour un jeu de taille c'est un handicap réel — la
+moitié du plaisir du geste est dans le tac-tac du maillet, et Michelangelo s'en
+sert massivement. Je ne l'ai pas ajouté (c'est un interdit explicite), mais si
+le geste reste tiède après cette version, **c'est le premier levier à essayer**
+avant de conclure quoi que ce soit sur le Proto 1.
+
+---
+
 ## Retour de partie n°1 → refonte
 
 > « Bof, c'est un jeu de casse-brique, et ce n'est pas assez clair sur la zone
@@ -77,12 +135,11 @@ Ce qui a changé :
    2 rangs (pointe), ambre vif = dernier rang (ciseau). La couleur dit quel
    outil prendre, sans jauge à lire.
 5. **Le coup a du poids** : éclats de pierre qui volent avec la couleur de ce
-   qu'on vient d'ôter, poussière, et secousse proportionnelle à la force.
+   qu'on vient d'ôter, poussière, secousse.
 6. **Moins de démolition, plus de taille.** Le bloc est passé de 1872 à 1452
-   cubes et la chasse arrache désormais un éclat *large et peu profond* (le vrai
-   geste) au lieu d'un trou rond. Une pierre se fait en **40 à 60 coups** au
-   lieu de ~90, et la plupart de ces coups sont des décisions près du trait,
-   pas du déblaiement.
+   cubes. *(Le reste de ce point a été dépassé par le retour n°2 ci-dessus :
+   ce n'est pas la taille des bouchées qui faisait le casse-brique, c'est le
+   fait qu'il y ait des bouchées.)*
 7. **Chaque bloc est un caillou différent** : les faces sortent de carrière
    irrégulières, tirées au sort. La 2e pierre n'est pas la 1re.
 
@@ -101,49 +158,50 @@ navigateur, rien à installer.
   froide ; la gangue par-dessus, chaude et translucide, teintée par ce qu'il
   reste à ôter dessous (brun sombre = épais, ambre vif = dernier rang). Un cube
   pris sous le trait laisse une **entaille rouge** qui ne s'efface pas.
-- **Aperçu du coup** : les cubes que le coup emportera s'allument en blanc, et
-  l'anneau de charge sous le curseur passe du pâle au rouge. On voit la morsure
-  grossir tant qu'on maintient — c'est là que se joue « je lâche ou j'attends ».
-- **Le coup a du poids** : éclats qui volent (à la couleur de ce qui vient
-  d'être ôté), poussière, secousse proportionnelle à la force.
+- **L'empreinte de l'outil** est dessinée sur la face, à sa vraie largeur, et
+  les colonnes qu'elle attaque s'allument. On voit *où* on rabote, pas *combien*
+  on va faire sauter.
+- **On maintient et on balaie** : l'outil frappe en cadence et use la surface
+  par fractions de rang. Éclats, poussière et secousse à chaque coup de maillet.
+- **« Reste à ôter : 1,4 rang »** sous l'outil : le tailleur mesure avant de
+  frapper. C'est ce chiffre qui a remplacé le trait tracé.
 - Un éclat qui n'est plus porté par le sol **tombe** et ne revient pas.
 
-### Écart assumé au brief : le ciseau *dresse*, il ne retire pas 1 cube
+### Écart assumé au brief : la force, et le ciseau
 
-Le brief disait « Ciseau — retire 1 cube ». Testé, mesuré : finir la pierre
-cube par cube demandait **576 clics**. Injouable, et faux par rapport au métier
-— un ciseau ne pique pas un point, il court le long de la face et **rase ce qui
-dépasse**.
+Le brief demandait « Ciseau — retire 1 cube » et « force du coup via curseur ou
+durée d'appui ». Les deux ont sauté, pour la même raison : ils faisaient du
+casse-brique.
 
-Le ciseau se règle donc sur le cube où on le **pose** : tout ce qui dépasse de
-ce niveau, dans son disque, saute. **Et s'il n'y a plus rien à raser, c'est le
-cube visé lui-même qui part.** C'est exactement le « coup de trop » que le brief
-cherchait — mais un coup de trop *volontaire*, choisi en connaissance de cause,
-pas un dérapage subi.
+- **Le ciseau ne retire pas 1 cube.** Testé : finir cube par cube demandait 576
+  clics. Et c'est faux par rapport au métier — un ciseau ne pique pas un point,
+  il court le long de la face et rase ce qui dépasse. Il ne touche donc qu'aux
+  bosses ; sur une face déjà dressée, il n'a plus rien à raser et entame la face.
+- **La force n'est plus un curseur qu'on charge.** La charge faisait de chaque
+  coup un événement — exactement le rituel du casse-brique. La dose, maintenant,
+  c'est **combien de temps on reste au même endroit** : dwell = profondeur.
+  C'est plus analogique, et c'est le vrai geste.
 
-La chasse a elle aussi bougé : elle arrache un éclat **large et peu profond**
-au lieu d'une sphère. C'est le vrai geste, et ça la rend enfin utilisable pour
-balayer une face sans plonger droit dans la pierre.
+### Ce que le moteur mesure (parties types rejouées hors navigateur)
 
-### Ce que le moteur mesure (vérifié hors navigateur, parties types rejouées)
-
-| Manière de jouer | Coups | Trait | Planéité | Sous le trait | Score |
+| Manière de jouer | Temps | Coups | Trait | Planéité | Score |
 |---|---|---|---|---|---|
-| Chasse à fond partout, sans regarder | 31 | 0 | 46 | 240 | **34** |
-| Tailleur qui lit l'aperçu | 53 | 90 | 96 | 11 | **94** |
-| Prudent (garde 1 cube de marge) | 99 | 90 | 95 | 11 | **89** |
-| …le même, + 5 coups de trop | 104 | 57 | 87 | 48 | **69** |
+| Chasse partout, jusqu'au bout | 63 s | 225 | 22 | 67 | **45** |
+| Bon outil au bon moment | 67 s | 288 | 69 | 77 | **76** |
+| Prudent (ciseau dès 2 rangs) | 80 s | 492 | 100 | 97 | **99** |
+| …+ 3 s de ciseau de trop | 83 s | 525 | 89 | 92 | **92** |
+| …+ 5 s encore | 88 s | 580 | 51 | 81 | **65** |
 
 Trois choses à retenir :
-1. Taper fort et vite est **puni** (34) — la progression chasse → pointe →
-   ciseau n'est pas décorative, elle est obligatoire.
-2. **Lire l'aperçu est le skill.** Le prudent qui double le nombre de coups
-   n'obtient pas une meilleure pierre : il perd juste sur l'économie du geste.
-3. **Cinq coups de trop coûtent 20 à 25 points.** Le frisson du dernier coup est
-   dans le modèle, et c'est une décision, pas un accident. Reste à savoir s'il
-   se *ressent* — c'est la question ci-dessous, et seule une partie y répond.
+1. **La progression chasse → pointe → ciseau est obligatoire**, pas décorative :
+   45 contre 99 pour le même temps de travail.
+2. **Aller plus fin coûte du temps** (80 s contre 67) et rapporte de la qualité.
+   C'est l'arbitrage central, et il est continu.
+3. **S'attarder coûte cher** : 3 s de trop, 7 points ; 8 s, 34 points. Le frisson
+   du dernier coup n'est plus un pari à l'aveugle mais une pression qui monte.
+   Reste à savoir s'il se *ressent* — seule une partie le dira.
 
-Une pierre se taille en **40 à 60 coups**, quelques minutes.
+Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
