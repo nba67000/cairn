@@ -35,11 +35,12 @@ C'est ce que testent les protos.
 ## État d'avancement
 
 - [x] `DESIGN.md` — la vision figée (à lire en premier)
-- [x] Proto 1 — **codé, pas encore jugé.** Ouvrir `proto-01-solo/index.html`
-      dans un navigateur, tailler une pierre, remplir le verdict de
-      `proto-01-solo/NOTES.md`.
-- [ ] Proto 2 — la pierre héritée (teste : « faire avec » a-t-il du sel ?)
-      → **à ne coder que si le verdict du Proto 1 est OUI.**
+- [x] Proto 1 — **jugé le 29/08/2026 : NON.** Le geste est bon, sa répétition
+      ne l'est pas. « Il y a un aspect redondant ; envie d'une 2e pierre : non. »
+      Analyse complète dans `proto-01-solo/NOTES.md`.
+- [ ] Proto 2 — **bloqué par le protocole** tant que la redondance du Proto 1
+      n'est pas comprise. Trois de ses causes sont structurelles, pas des
+      réglages : un seul modèle à vie, une seule stratégie gagnante, aucun aval.
 
 ## Ordre de travail (à respecter strictement)
 

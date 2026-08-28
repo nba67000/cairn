@@ -293,10 +293,61 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
-## Verdict (à remplir APRÈS avoir joué)
+## VERDICT — rendu le 29/08/2026
 
-- Envie d'une 2e pierre sans se forcer ? →
-- Frisson du dernier coup présent ? →
-- Le dosage force/outil crée-t-il un vrai arbitrage, ou on tape au hasard ? →
-- Décision : passer au Proto 2 ? OUI / NON →
+> « Il y a un aspect redondant. À ta question "ai-je envie de tailler une
+> nouvelle pierre" : **non**. »
+
+- **Envie d'une 2e pierre sans se forcer ? → NON.**
+- Le geste lui-même : jugé bon au tour n°4 (« c'est bien », « encourageant »).
+  Ce n'est donc **pas** le geste qui est fade — c'est sa **répétition**.
+- Décision : **le Proto 1 ne passe pas son propre juge.**
+
+### D'où vient la redondance — analyse honnête
+
+Quatre causes, de la plus superficielle à la plus profonde. Les trois dernières
+sont **structurelles** : aucune n'était réparable par du réglage.
+
+1. **Un seul modèle, à vie.** La pierre visée est toujours le même 7×7×9, dans le
+   même coin. La 2e pierre pose exactement le problème de la 1re. Le bloc de
+   carrière varie, mais c'est cosmétique : le travail à faire est identique.
+   → À comparer avec la référence : Michelangelo va d'un pilier au David. Le
+   « oui » qu'il a prouvé commercialement portait sur une suite de tâches
+   **différentes**. Mon Proto 1 en est une version dégénérée.
+
+2. **Trois faces, un problème répété trois fois.** Même *à l'intérieur* d'une
+   pierre, les faces +x, +y et +z posent la tâche identique. La redondance
+   commence donc avant la 2e pierre.
+
+3. **Une seule stratégie gagnante, connue dès la 1re pierre.** C'est mon erreur
+   de conception, et mes propres mesures la prouvent : une ligne à 94, toutes les
+   autres entre 42 et 44. J'ai réglé le jeu pour que « la bonne méthode soit
+   récompensée » — et j'ai obtenu « il n'existe qu'une méthode ». Une table de
+   stratégies saine montrerait plusieurs lignes viables et des arbitrages ; la
+   mienne montre une réponse juste et des fautes. Ce n'est pas un skill, c'est
+   une exécution.
+
+4. **Rien ne survit à la pierre.** On finit, on a un score, il s'évapore. Or le
+   DESIGN (§5) dit que le premier battement de cœur *doit* être la fierté du
+   geste — mais la fierté d'une pierre qui ne va nulle part n'est pas de la
+   fierté. Dans le vrai jeu, la pierre part dans le château et porte la marque
+   du tailleur. Le Proto 1 n'a **pas d'aval**.
+
+### Ce que ce NON prouve, et ce qu'il ne prouve pas
+
+**Il prouve** que le geste solo, seul, ne porte pas le jeu. C'est exactement le
+risque que le DESIGN avait nommé (§7, « déficit d'anticipation ») et la raison
+pour laquelle le brief disait « ne pas s'y attarder ».
+
+**Il ne prouve pas** que le geste est mauvais — le retour du tour n°4 dit
+l'inverse. Trois des quatre sources d'intérêt de Cairn (la variété venue de
+l'héritage, la gratitude en aval, la contemplation du château) sont **absentes
+par construction** du Proto 1. Le NON peut être la réaction à leur absence
+plutôt qu'au geste.
+
+⚠️ **Piège à éviter** : c'est exactement le raisonnement qu'un créateur se tient
+pour ne pas entendre un NON. Il ne doit pas servir à passer outre le protocole.
+Il doit servir à **choisir le bon test suivant** — voir la décision ci-dessous.
+
+- Décision : passer au Proto 2 ? → **EN ATTENTE** (voir ci-dessous)
 - Notes libres :
