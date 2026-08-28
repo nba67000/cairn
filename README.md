@@ -34,9 +34,12 @@ C'est ce que testent les protos.
 
 ## État d'avancement
 
-- [ ] `DESIGN.md` — la vision figée (à lire en premier)
-- [ ] Proto 1 — tailler une pierre de A à Z (teste : le geste est-il agréable ?)
+- [x] `DESIGN.md` — la vision figée (à lire en premier)
+- [x] Proto 1 — **codé, pas encore jugé.** Ouvrir `proto-01-solo/index.html`
+      dans un navigateur, tailler une pierre, remplir le verdict de
+      `proto-01-solo/NOTES.md`.
 - [ ] Proto 2 — la pierre héritée (teste : « faire avec » a-t-il du sel ?)
+      → **à ne coder que si le verdict du Proto 1 est OUI.**
 
 ## Ordre de travail (à respecter strictement)
 
