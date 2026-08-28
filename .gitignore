@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+
+# Node (si un jour un proto en a besoin)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# Claude Code (local)
+.claude/
