@@ -126,14 +126,14 @@
   </div>
 
   <div class="sect">
-    <h2>Lecture de la pierre</h2>
-    <div class="lg"><span class="sw" style="background:#b0bec7"></span><b style="color:#c3cfd6;font-weight:600">La pierre</b> — froide, déjà là, dessous</div>
-    <div class="lg"><span class="sw" style="background:#564839"></span>gangue épaisse — <b style="font-weight:600">chasse</b></div>
-    <div class="lg"><span class="sw" style="background:#9c7240"></span>plus que 2 rangs — <b style="font-weight:600">pointe</b></div>
-    <div class="lg"><span class="sw" style="background:#c99447"></span>dernier rang — <b style="font-weight:600">ciseau</b></div>
+    <h2>Ce que le bloc t'apprend</h2>
+    <div class="lg"><span class="sw" style="background:#463c30"></span>gangue épaisse — <b style="font-weight:600">chasse</b></div>
+    <div class="lg"><span class="sw" style="background:#86704e"></span>ça se resserre — <b style="font-weight:600">pointe</b></div>
+    <div class="lg"><span class="sw" style="background:#dba140"></span>dernier rang — <b style="font-weight:600">ciseau</b></div>
+    <div class="lg"><span class="sw" style="background:#b0bec7"></span><b style="color:#c3cfd6;font-weight:600">la pierre</b>, froide — n'y touche plus</div>
     <div class="lg"><span class="sw" style="background:#c45c4e"></span>entaille : tu as mordu la pierre</div>
-    <p class="hint">Tout ce qui est <b style="color:#c3cfd6;font-weight:600">froid</b> est acquis.
-    Tout ce qui est <b style="color:#c99447;font-weight:600">chaud</b> reste à ôter.</p>
+    <p class="hint">Le bloc est <b style="font-weight:600">opaque</b> : la pierre ne se devine pas,
+    elle se découvre. Seule la surface mise à nu parle — et le chiffre sous l'outil.</p>
   </div>
 
   <div class="sect">
@@ -163,7 +163,7 @@
  * ------------------------------------------------------------------ */
 
 /* ---------- la pierre ---------- */
-const W = 11, D = 11, H = 12;            // bloc de carrière
+const W = 11, D = 11, H = 13;            // bloc de carrière
 const KX = 7, KY = 7, KZ = 9;            // pierre visée : x 0..6, y 0..6, z 0..8
 const LIM = [W, D, H];
 const N = W * D * H;
@@ -189,24 +189,30 @@ const order = Array.from({ length: N }, (_, i) => i)
 
 /* Un bloc sorti de carrière n'est pas un cube parfait : ses faces sont mangées
    irrégulièrement. Chaque pierre est donc un caillou différent — et les
-   premiers coups consistent à suivre la forme trouvée, pas à raboter un mur. */
+   premiers coups consistent à suivre la forme trouvée, pas à raboter un mur.
+
+   MAIS l'érosion s'arrête au 3e rang : au premier coup d'œil, le bloc ne doit
+   montrer QUE de la gangue épaisse à dégrossir. Ni pierre, ni dernier rang —
+   ça se découvre en taillant. */
 function quarry() {
   solid.fill(1);
   const ph = () => Math.random() * 6.2832;
   for (let f = 0; f < 3; f++) {
     const a = ph(), b = ph(), c = ph(), amp = 0.9 + Math.random() * 1.5;
+    const maxCreux = Math.max(0, (LIM[f] - [KX, KY, KZ][f]) - 3);
+    if (!maxCreux) continue;
     for (let i = 0; i < N; i++) {
-      if (keep[i] || !solid[i]) continue;
+      if (keep[i] || !solid[i] || gang[i] < 4) continue;
       const p = [XS[i], YS[i], ZS[i]], na = f;
       const t1 = p[(f + 1) % 3], t2 = p[(f + 2) % 3];
       const e = amp * (0.55 + 0.45 * Math.sin(t1 * 0.8 + a)) * (0.55 + 0.45 * Math.sin(t2 * 0.7 + b))
               + 0.5 * Math.sin((t1 + t2) * 0.5 + c);
-      const creux = Math.max(0, Math.round(e));                 // 0 à 2 rangs mangés
+      const creux = Math.min(maxCreux, Math.max(0, Math.round(e)));
       if (p[na] >= LIM[na] - creux) solid[i] = 0;
     }
   }
-  // on ne descend jamais sous l'avant-dernier rang : il doit rester à tailler
-  for (let i = 0; i < N; i++) if (!keep[i] && gang[i] <= 1) solid[i] = 1;
+  // garde-fou : rien en dessous du 3e rang ne peut être à nu au départ
+  for (let i = 0; i < N; i++) if (!keep[i] && gang[i] <= 2) solid[i] = 1;
 
   const a = ph(), b = ph(), c = ph();
   for (let i = 0; i < N; i++) {
@@ -305,15 +311,16 @@ function poly(c, p, fill, stroke) {
  *  trait. Pas une ligne en pointillé qui flotte — la matière elle-même dit
  *  « ici il reste trois rangs », « ici c'est le dernier ».                    */
 // La pierre est FROIDE (calcaire frais, fraîchement fendu), la gangue est
-// CHAUDE (peau du bloc, oxydée). Deux familles qui ne se confondent jamais :
-// à n'importe quelle opacité, on sait toujours ce qui est pierre et ce qui
-// est encore à ôter. C'est ça qui remplace le trait en pointillé.
+// CHAUDE (peau du bloc, oxydée). Deux familles qui ne se confondent jamais.
+// Mais on ne voit ces couleurs QUE sur la surface mise à nu : le bloc s'ouvre
+// par paliers — brun épais, brun, ambre, puis la pierre. C'est l'échelle de
+// découverte, pas une carte donnée d'avance.
 const C_CORE = [176, 190, 199], C_SCAR = [196, 92, 78], C_PREV = [248, 244, 236];
-const C_GANG = [[219, 161, 64], [134, 97, 56], [88, 72, 54], [66, 57, 46]];    // 1, 2, 3, 4+ rangs
-const A_GANG = [0.58, 0.54, 0.45, 0.40];                                       // toujours assez fin pour voir la pierre dessous
+const C_GANG = [[219, 161, 64], [134, 97, 56], [92, 76, 57], [70, 60, 48]];    // 1, 2, 3, 4+ rangs
 const gangRang = i => Math.min(Math.max(gang[i], 1), 4) - 1;
 const gangCol = i => C_GANG[gangRang(i)];
 const shade = (c, f, n) => `rgb(${(c[0] * f * n) | 0},${(c[1] * f * n) | 0},${(c[2] * f * n) | 0})`;
+const mix = (a, b, t) => t <= 0 ? a : [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 // L'entaille, c'est le FOND de la plaie : un cube de la pierre qui se retrouve
 // à l'air libre alors qu'il devrait être couvert par de la pierre. Autrement
@@ -354,49 +361,54 @@ function draw() {
   ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
   ctx.restore();
 
-  // Passe 1 — LA PIERRE, opaque, telle qu'elle serait si toute la gangue
-  // tombait maintenant. Toute la gangue est devant elle (elle est calée au
-  // fond du bloc), donc deux passes suffisent : pas de tri à faire.
+  // Le bloc est OPAQUE. On ne voit que ce qu'on a mis à nu : la pierre ne se
+  // devine pas à travers la gangue, elle se découvre en taillant. Un cube dit
+  // ce qu'il est seulement quand il est en surface.
   for (const i of order) {
-    if (!solid[i] || !keep[i]) continue;
-    const x = XS[i], y = YS[i], z = ZS[i];
-    const ex = x + 1 >= KX || !solid[idx(x + 1, y, z)] || !keep[idx(x + 1, y, z)];
-    const ey = y + 1 >= KY || !solid[idx(x, y + 1, z)] || !keep[idx(x, y + 1, z)];
-    const ez = z + 1 >= KZ || !solid[idx(x, y, z + 1)] || !keep[idx(x, y, z + 1)];
-    if (!ex && !ey && !ez) continue;
-    const pv = preview.has(i);
-    drawCube(i, ex, ey, ez, pv ? C_PREV : (scarred(i) ? C_SCAR : C_CORE),
-      1, pv ? "rgba(255,255,255,.6)" : "rgba(0,0,0,.30)", pv ? 1 : GR[i]);
-  }
-
-  // Passe 2 — LA GANGUE, translucide : on voit la pierre au travers.
-  for (const i of order) {
-    if (!solid[i] || keep[i]) continue;
+    if (!solid[i]) continue;
     const x = XS[i], y = YS[i], z = ZS[i];
     const ex = x + 1 >= W || !solid[i + 1];
     const ey = y + 1 >= D || !solid[i + W];
     const ez = z + 1 >= H || !solid[i + W * D];
-    if (!ex && !ey && !ez) continue;
+    if (!ex && !ey && !ez) continue;                       // cube enterré : invisible
     const pv = preview.has(i);
-    drawCube(i, ex, ey, ez, pv ? C_PREV : gangCol(i), pv ? 1 : A_GANG[gangRang(i)],
-      pv ? "rgba(255,255,255,.6)" : "rgba(0,0,0,.18)", pv ? 1 : GR[i]);
+    // un cube de pierre déjà entamé rougit à mesure qu'on le ronge : on voit
+    // qu'on mord dedans avant même de l'avoir perdu
+    const col = pv ? C_PREV
+      : keep[i] ? (scarred(i) ? C_SCAR : mix(C_CORE, C_SCAR, wear[i]))
+      : gangCol(i);
+    drawCube(i, ex, ey, ez, col, 1,
+      pv ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.26)", pv ? 1 : GR[i]);
   }
-  ctx.globalAlpha = 1;
 
   drawChips();
   drawOutil();
 }
 
-// Le fer de l'outil, posé sur la face, à l'échelle de son empreinte. Il dit
-// où l'on travaille et sur quelle largeur — pas combien on va faire sauter.
+// Le fer de l'outil posé sur la face, à l'échelle de son empreinte, et la
+// mesure au point de travail. Puisqu'on ne voit plus la pierre à travers la
+// gangue, c'est CE chiffre qui dit où l'on en est — comme un tailleur qui
+// sonde son ouvrage au lieu de consulter un plan.
 function drawOutil() {
   if (done || hoverI < 0) return;
   const t = TOOLS[tool], r = t.rayon * TW * 0.5;
   ctx.save(); ctx.translate(mx, my);
-  ctx.scale(1, 0.62);
+  ctx.save(); ctx.scale(1, 0.62);
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832);
   ctx.strokeStyle = working ? "rgba(255,244,226,.85)" : "rgba(232,222,204,.45)";
   ctx.lineWidth = working ? 2.4 : 1.4; ctx.stroke();
+  ctx.restore();
+
+  const m = mesure();
+  if (m) {
+    ctx.font = "600 12px ui-monospace,Consolas,monospace";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const w = ctx.measureText(m.txt).width, x = r + 10, y = -r * 0.62 - 6;
+    ctx.fillStyle = "rgba(16,14,11,.72)";
+    ctx.fillRect(x - 5, y - 9, w + 10, 18);
+    ctx.fillStyle = m.col;
+    ctx.fillText(m.txt, x, y);
+  }
   ctx.restore();
 }
 
@@ -606,17 +618,25 @@ function planeity() {
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
+// L'usure est fractionnaire, les jauges doivent l'être aussi : un copeau ôté
+// fait bouger l'aiguille, on n'attend pas que le cube entier tombe. C'est ce
+// qui rend le retour immédiat à CHAQUE coup de maillet — et c'est ce qui fait
+// sentir qu'on entame la pierre avant même d'avoir perdu un cube.
 function gauges() {
-  let left = 0, surplus = 0, over = 0;
+  let left = 0, surplus = 0, over = 0, ronge = 0, entame = 0;
   for (let i = 0; i < N; i++) {
-    if (solid[i]) { left++; if (!keep[i]) surplus++; }
-    else if (keep[i]) over++;
+    if (solid[i]) {
+      left++;
+      if (!keep[i]) { surplus++; ronge += wear[i]; }
+      else entame += wear[i];
+    } else if (keep[i]) over++;
   }
+  const reste = surplus - ronge, mordu = over + entame;
   return {
-    mat: 100 * left / START,
-    tra: clamp(100 * (1 - surplus / SURPLUS0) - 0.9 * over, 0, 100),
+    mat: 100 * (left - ronge - entame) / START,
+    tra: clamp(100 * (1 - reste / SURPLUS0) - 0.9 * mordu, 0, 100),
     pla: planeity(),
-    surplus, over, left,
+    surplus, over, left, mordu,
   };
 }
 
@@ -652,14 +672,18 @@ function resteSousOutil() {
   const na = AXES[hoverF][0], K = [KX, KY, KZ][na];
   return (wpos(hoverI)[na] + 1) - K;                      // > 0 : gangue ; ≤ 0 : dans la pierre
 }
+function mesure() {
+  const d = resteSousOutil();
+  if (d === null) return null;
+  if (d > 0.05)   return { txt: d.toFixed(1).replace(".", ",") + " rang" + (d >= 2 ? "s" : ""),
+                           col: d < 1.05 ? "#e8b25f" : "#d9d0c0" };
+  if (d > -0.05)  return { txt: "au trait", col: "#8fc47a" };
+  return { txt: "−" + (-d).toFixed(1).replace(".", ","), col: "#e07a6c" };
+}
 function majReste() {
-  const el = document.getElementById("reste"), d = resteSousOutil();
-  if (d === null) { el.textContent = "—"; el.style.color = "var(--dim)"; return; }
-  if (d > 0.05)      { el.textContent = d.toFixed(1).replace(".", ",") + " rang" + (d >= 2 ? "s" : "");
-                       el.style.color = d < 1.05 ? "#d9a24f" : "var(--ink)"; }
-  else if (d > -0.05){ el.textContent = "au trait";        el.style.color = "#7fb069"; }
-  else               { el.textContent = "sous le trait de " + (-d).toFixed(1).replace(".", ",");
-                       el.style.color = "var(--bad)"; }
+  const el = document.getElementById("reste"), m = mesure();
+  el.textContent = m ? m.txt : "—";
+  el.style.color = m ? m.col : "var(--dim)";
 }
 
 /* ---------- boucle ---------- */

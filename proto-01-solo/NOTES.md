@@ -53,6 +53,45 @@ trop mangé »).
 
 ---
 
+## Retour de partie n°3 → la pierre se DÉCOUVRE
+
+> « J'ai beaucoup [aimé]. Par contre ne montre pas la partie blanche ni jaune,
+> faut le découvrir au fur et à mesure ; dans un premier temps la partie marron
+> à dégrossir. »
+
+C'est l'inverse exact du tour n°2 — et c'est juste. Au tour n°2, la gangue était
+devenue translucide *parce que le geste était illisible* : il fallait bien un
+garde-fou. Maintenant que le geste marche, ce rayon X ne protège plus rien, il
+**vole la découverte**. Or la découverte, c'est tout le sujet : la pierre est
+déjà dans le bloc, on ne la fabrique pas, on la trouve.
+
+Ce qui a permis d'enlever le rayon X sans revenir au problème du tour n°1
+(« pas assez clair sur la zone à conserver ») : **le chiffre sous l'outil**. Il
+n'existait pas au tour n°1. Un tailleur ne consulte pas un plan, il sonde son
+ouvrage au point de travail. C'est maintenant l'instrument principal, et il est
+affiché à côté du fer, sur la pierre, pour ne pas quitter l'ouvrage des yeux.
+
+- **Le bloc est opaque.** Un cube ne dit ce qu'il est que lorsqu'il est en
+  surface. Rien ne se devine à travers la matière.
+- **Le départ est entièrement brun.** L'érosion de carrière s'arrête au 3e rang :
+  au premier coup d'œil il n'y a que de la gangue épaisse à dégrossir. Ni
+  pierre, ni dernier rang.
+- **Le bloc s'ouvre par paliers** : brun épais → brun → ambre → la pierre. Ces
+  couleurs ne sont plus une carte donnée d'avance, ce sont des paliers
+  découverts un par un, exactement là où on a travaillé.
+- Bloc passé à **11×11×13** pour que les 3 faces aient 4 rangs de gangue : de
+  quoi garder un bloc irrégulier *et* un départ uniformément brun.
+
+### Et une incohérence corrigée au passage
+
+Les jauges ne comptaient que les cubes **entièrement** tombés, alors que
+l'usure est fractionnaire : l'aiguille avançait par à-coups. Elles comptent
+maintenant les copeaux. Conséquence directe : **on voit la jauge du trait
+descendre dès qu'on entame la pierre**, sans attendre d'avoir perdu un cube —
+et le cube entamé rougit progressivement. Le « arrête-toi » se voit venir.
+
+---
+
 ## Retour de partie n°2 → on change le VERBE
 
 > « Ça reste un casse-brique, inspire-toi de Michelangelo: Stonemason Simulator. »
@@ -150,14 +189,14 @@ Ce qui a changé :
 `index.html` — un seul fichier, canvas 2D, zéro dépendance. Ouvrir dans un
 navigateur, rien à installer.
 
-- Bloc de carrière **11×11×12 = 1452 cubes**, pierre visée **7×7×9 = 441**,
+- Bloc de carrière **11×11×13 = 1573 cubes**, pierre visée **7×7×9 = 441**,
   calée dans le coin arrière-bas : ses 3 faces à travailler sont donc toutes
   atteignables malgré la caméra fixe sans rotation. Les faces du bloc sont
   mangées irrégulièrement au tirage — chaque pierre est un caillou différent.
-- **On voit la pierre à travers la gangue.** La pierre est dessinée en dur,
-  froide ; la gangue par-dessus, chaude et translucide, teintée par ce qu'il
-  reste à ôter dessous (brun sombre = épais, ambre vif = dernier rang). Un cube
-  pris sous le trait laisse une **entaille rouge** qui ne s'efface pas.
+- **Le bloc est opaque, la pierre se découvre.** Au départ, rien que du brun à
+  dégrossir. La surface mise à nu s'ouvre ensuite par paliers — brun épais,
+  brun, ambre (dernier rang), puis la pierre, froide. Un cube de pierre entamé
+  **rougit** à mesure qu'on le ronge, et l'entaille ne s'efface pas.
 - **L'empreinte de l'outil** est dessinée sur la face, à sa vraie largeur, et
   les colonnes qu'elle attaque s'allument. On voit *où* on rabote, pas *combien*
   on va faire sauter.
@@ -186,20 +225,19 @@ casse-brique.
 
 | Manière de jouer | Temps | Coups | Trait | Planéité | Score |
 |---|---|---|---|---|---|
-| Chasse partout, jusqu'au bout | 63 s | 225 | 22 | 67 | **45** |
-| Bon outil au bon moment | 67 s | 288 | 69 | 77 | **76** |
-| Prudent (ciseau dès 2 rangs) | 80 s | 492 | 100 | 97 | **99** |
-| …+ 3 s de ciseau de trop | 83 s | 525 | 89 | 92 | **92** |
-| …+ 5 s encore | 88 s | 580 | 51 | 81 | **65** |
+| Chasse partout, jusqu'au bout | 74 s | 268 | 0 | 71 | **33** |
+| Chasse jusqu'au 2e rang seulement | 76 s | 325 | 13 | 74 | **41** |
+| Prudent (ciseau dès le 3e rang) | 89 s | 513 | 91 | 96 | **94** |
+| …+ 3 s de ciseau de trop | 92 s | 546 | 59 | 92 | **74** |
+| …+ 5 s encore | 97 s | 601 | 24 | 78 | **49** |
 
 Trois choses à retenir :
 1. **La progression chasse → pointe → ciseau est obligatoire**, pas décorative :
-   45 contre 99 pour le même temps de travail.
-2. **Aller plus fin coûte du temps** (80 s contre 67) et rapporte de la qualité.
-   C'est l'arbitrage central, et il est continu.
-3. **S'attarder coûte cher** : 3 s de trop, 7 points ; 8 s, 34 points. Le frisson
-   du dernier coup n'est plus un pari à l'aveugle mais une pression qui monte.
-   Reste à savoir s'il se *ressent* — seule une partie le dira.
+   33 contre 94 pour à peine plus de temps de travail.
+2. **Approcher au gros outil se paie.** Descendre à la chasse jusqu'au 2e rang
+   au lieu du 3e fait perdre 53 points : c'est l'arbitrage central.
+3. **S'attarder coûte cher** : 3 s de trop, 20 points ; 8 s, 45 points. Et
+   comme les jauges comptent les copeaux, ça se voit venir coup par coup.
 
 Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
