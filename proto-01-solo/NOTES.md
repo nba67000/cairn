@@ -53,6 +53,56 @@ trop mangé »).
 
 ---
 
+## Retour de partie n°4 → l'outil touche ce qu'il touche, et l'arête casse
+
+> « La sélection sélectionne parfois des cubes absolument à l'opposé du curseur ;
+> il faut que ce soit juxtaposé au curseur et plus ou moins gros selon l'outil.
+> Enlève le mesh, et un coup c'est un trou plus ou moins large concentrique avec
+> pour épicentre le curseur. Si c'est au bord d'une arête, faut voir ce qu'il se
+> passe réellement dans le réel et reproduire. »
+
+### Le bug : l'outil mordait à l'opposé
+
+Vrai bug, et sa cause était bête. Pour chaque colonne autour du curseur,
+l'empreinte cherchait le cube le plus extérieur **sur toute la profondeur du
+bloc**. Près d'une arête, une colonne voisine a sa surface 7 rangs en arrière —
+l'outil allait donc la chercher là-bas.
+
+Corrigé par la physique du geste : **l'outil est posé sur la pierre, il ne
+touche que ce qui affleure sous lui.** Une colonne dont la surface est à plus de
+2 rangs du point de contact n'est pas sous le fer, donc on n'y touche pas.
+
+### Le mesh, et le coup comme cratère
+
+- **Le maillage est supprimé.** Plus une seule arête de cube dessinée. La forme
+  se lit maintenant par l'ombre : une colonne encaissée entre des voisines plus
+  hautes s'assombrit. Résultat, la surface lit comme de la roche et non comme un
+  mur de briques — c'était sans doute la moitié de l'effet casse-brique.
+- **Chaque outil a son profil de cratère.** Un coup n'use pas uniformément son
+  empreinte : il creuse fort au centre et s'éteint au bord, donc il ouvre un
+  **trou concentrique dont l'épicentre est le curseur**. La chasse ouvre un
+  cratère large, le ciseau rase à plat — c'est le geste réel de chacun.
+- **L'aperçu montre ce profil**, pas juste la surface touchée : on voit le creux
+  qu'on va faire avant de le faire.
+- Les trois empreintes sont franchement différentes (2,6 / 1,55 / 1,15 colonnes)
+  et le cercle dessiné sur la pierre est à la vraie échelle de l'outil.
+
+### L'arête : ce qui se passe pour de vrai
+
+Dans le métier, frapper près d'une arête vive, c'est l'**épaufrer** : la pierre
+n'est plus épaulée de ce côté, elle ne résiste pas, et elle part en écaille bien
+au-delà du coup. C'est la faute classique, et la raison pour laquelle on
+n'approche jamais une arête à la chasse — on la finit au ciseau, en frappant
+vers la masse et non vers le vide.
+
+C'est reproduit tel quel : chaque colonne compte ses voisines manquantes, et
+l'usure y est multipliée d'autant (×1,7 à la chasse, ×0,3 au ciseau). Effet
+émergent vérifié — le bot, qui ne sait pas ménager les arêtes, ressort une
+pierre dont **tous les angles sont épaufrés** et le reste intact. Le défaut
+apparaît exactement là où il apparaît dans la réalité.
+
+---
+
 ## Retour de partie n°3 → la pierre se DÉCOUVRE
 
 > « J'ai beaucoup [aimé]. Par contre ne montre pas la partie blanche ni jaune,
@@ -225,19 +275,19 @@ casse-brique.
 
 | Manière de jouer | Temps | Coups | Trait | Planéité | Score |
 |---|---|---|---|---|---|
-| Chasse partout, jusqu'au bout | 74 s | 268 | 0 | 71 | **33** |
-| Chasse jusqu'au 2e rang seulement | 76 s | 325 | 13 | 74 | **41** |
-| Prudent (ciseau dès le 3e rang) | 89 s | 513 | 91 | 96 | **94** |
-| …+ 3 s de ciseau de trop | 92 s | 546 | 59 | 92 | **74** |
-| …+ 5 s encore | 97 s | 601 | 24 | 78 | **49** |
+| Chasse partout, jusqu'au bout | 65 s | 233 | 15 | 73 | **42** |
+| Chasse jusqu'au 2e rang | 62 s | 263 | 17 | 74 | **44** |
+| Prudent (ciseau dès le 3e rang) | 66 s | 390 | 91 | 95 | **94** |
+| …+ 3 s de ciseau de trop | 69 s | 423 | 49 | 88 | **66** |
+| …+ 5 s encore | 74 s | 478 | 0 | 75 | **34** |
 
 Trois choses à retenir :
 1. **La progression chasse → pointe → ciseau est obligatoire**, pas décorative :
-   33 contre 94 pour à peine plus de temps de travail.
-2. **Approcher au gros outil se paie.** Descendre à la chasse jusqu'au 2e rang
-   au lieu du 3e fait perdre 53 points : c'est l'arbitrage central.
-3. **S'attarder coûte cher** : 3 s de trop, 20 points ; 8 s, 45 points. Et
-   comme les jauges comptent les copeaux, ça se voit venir coup par coup.
+   42 contre 94 pour le même temps de travail.
+2. **Le gros outil près du trait ne pardonne pas** — surtout depuis l'épaufrure :
+   descendre à la chasse jusqu'au 2e rang ne gagne rien et ruine les arêtes.
+3. **S'attarder coûte cher** : 3 s de trop, 28 points ; 8 s, 60 points. Et comme
+   les jauges comptent les copeaux, ça se voit venir coup par coup.
 
 Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 

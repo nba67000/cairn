@@ -236,15 +236,18 @@ function quarry() {
  *  usure    fraction de rang ôtée par coup, au centre de l'empreinte
  *  cadence  coups de maillet par seconde tant qu'on maintient
  *  grain    irrégularité de l'usure (la chasse laisse la surface grêlée)
+ *  creux    profil du coup : 0 = rase à plat, 1 = creuse un bol concentrique
+ *  eclat    tendance à épaufrer une arête vive (voir `empreinte`)
  *  niveleur ne touche qu'à ce qui dépasse du cube où l'outil est posé        */
 const TOOLS = [
-  { nom: "Chasse", rayon: 2.35, usure: 0.42, cadence: 3.6, grain: 0.75, niveleur: false,
-    hint: "Large et brutale. Elle abat la gangue épaisse et laisse la surface grêlée." },
-  { nom: "Pointe", rayon: 1.45, usure: 0.26, cadence: 6.5, grain: 0.40, niveleur: false,
+  { nom: "Chasse", rayon: 2.60, usure: 0.44, cadence: 3.6, grain: 0.75, creux: 0.58, eclat: 1.70, niveleur: false,
+    hint: "Large et brutale : elle ouvre un cratère. Parfaite en pleine masse — mais elle épaufre toute arête qu'elle approche." },
+  { nom: "Pointe", rayon: 1.55, usure: 0.28, cadence: 6.5, grain: 0.40, creux: 0.70, eclat: 0.85, niveleur: false,
     hint: "Elle approche du trait sans tout emporter. Le ciseau finira." },
-  { nom: "Ciseau", rayon: 1.05, usure: 0.19, cadence: 11, grain: 0.06, niveleur: true, aplat: 2.4,
-    hint: "Il ne rabote que ce qui dépasse. Sur une face déjà dressée il n'a plus de bosse à prendre — alors il entame la face." },
+  { nom: "Ciseau", rayon: 1.15, usure: 0.20, cadence: 11, grain: 0.06, creux: 0.25, eclat: 0.30, niveleur: true, aplat: 2.4,
+    hint: "Il rase à plat, sans creuser : le seul à pouvoir travailler une arête. Sur une face déjà dressée, il entame la face." },
 ];
+const profil = (t, u) => Math.max(0, 1 - t.creux * u * u);   // intensité du coup au rayon u
 let tool = 0;
 
 const wear = new Float32Array(N);        // part de ce cube déjà partie en copeaux (0 → 1)
@@ -334,7 +337,7 @@ function scarred(i) {
 }
 
 /* ---------- rendu ---------- */
-let preview = new Set();
+let preview = new Map();          // cube visé -> intensité du coup (0 au bord, 1 au centre)
 
 // Un cube à demi rongé est dessiné RECULÉ dans l'axe où on l'use : la surface
 // s'enfonce par fractions de cube au lieu de sauter d'un rang d'un coup. C'est
@@ -371,14 +374,24 @@ function draw() {
     const ey = y + 1 >= D || !solid[i + W];
     const ez = z + 1 >= H || !solid[i + W * D];
     if (!ex && !ey && !ez) continue;                       // cube enterré : invisible
-    const pv = preview.has(i);
     // un cube de pierre déjà entamé rougit à mesure qu'on le ronge : on voit
     // qu'on mord dedans avant même de l'avoir perdu
-    const col = pv ? C_PREV
-      : keep[i] ? (scarred(i) ? C_SCAR : mix(C_CORE, C_SCAR, wear[i]))
-      : gangCol(i);
-    drawCube(i, ex, ey, ez, col, 1,
-      pv ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.26)", pv ? 1 : GR[i]);
+    let col = keep[i] ? (scarred(i) ? C_SCAR : mix(C_CORE, C_SCAR, wear[i])) : gangCol(i);
+    // l'empreinte de l'outil éclaire la pierre en dégradé : au centre du coup
+    // c'est vif, au bord ça s'éteint. On voit le creux qu'on va faire.
+    const pv = preview.get(i);
+    if (pv !== undefined) col = mix(col, C_PREV, 0.30 + 0.70 * pv);
+    // pas de maillage : la forme se lit par l'ombre. Une colonne encaissée
+    // entre des voisines plus hautes s'assombrit — c'est ce qui donne au coup
+    // sa lecture de cratère plutôt que de trou carré.
+    const face = ez ? 2 : ex ? 0 : 1, ta = AXES[face][1], tb = AXES[face][2];
+    const q = [x, y, z], a = q[ta], b = q[tb], h = q[face];   // AXES[f][0] === f
+    let hauts = 0;
+    if (sommet(face, a + 1, b) > h) hauts++;
+    if (sommet(face, a - 1, b) > h) hauts++;
+    if (sommet(face, a, b + 1) > h) hauts++;
+    if (sommet(face, a, b - 1) > h) hauts++;
+    drawCube(i, ex, ey, ez, col, 1, null, GR[i] * (1 - 0.22 * hauts / 4));
   }
 
   drawChips();
@@ -469,6 +482,24 @@ function pick(px, py) {
 // L'outil est posé À PLAT sur la face frappée. Son empreinte est un disque de
 // colonnes ; sur chaque colonne il n'attaque que le cube du dessus — la peau.
 // Il ne creuse jamais un trou sphérique dans la masse : il rabote une surface.
+// Relief de la pierre vu de chaque face : pour chaque colonne, l'altitude de
+// sa surface. Recalculé à chaque coup ; l'empreinte et l'ombrage s'en servent.
+const TOPS = [new Int8Array(D * H), new Int8Array(W * H), new Int8Array(W * D)];
+function majTops() {
+  for (let face = 0; face < 3; face++) {
+    const [na, ta, tb] = AXES[face], T = TOPS[face], nb = LIM[tb], p = [0, 0, 0];
+    for (let a = 0; a < LIM[ta]; a++) for (let b = 0; b < nb; b++) {
+      p[ta] = a; p[tb] = b;
+      let top = -1;
+      for (let k = LIM[na] - 1; k >= 0; k--) { p[na] = k; if (solid[idx(p[0], p[1], p[2])]) { top = k; break; } }
+      T[a * nb + b] = top;
+    }
+  }
+}
+const sommet = (face, a, b) =>
+  (a < 0 || b < 0 || a >= LIM[AXES[face][1]] || b >= LIM[AXES[face][2]])
+    ? -1 : TOPS[face][a * LIM[AXES[face][2]] + b];
+
 function empreinte(i, face, t) {
   const [na, ta, tb] = AXES[face];
   const c0 = [XS[i], YS[i], ZS[i]], ref = c0[na];
@@ -477,14 +508,27 @@ function empreinte(i, face, t) {
     const d = Math.hypot(da, db);
     if (d > t.rayon) continue;
     const a = c0[ta] + da, b = c0[tb] + db;
-    if (a < 0 || b < 0 || a >= LIM[ta] || b >= LIM[tb]) continue;
-    p[ta] = a; p[tb] = b;
-    let top = -1;
-    for (let k = LIM[na] - 1; k >= 0; k--) { p[na] = k; if (solid[idx(p[0], p[1], p[2])]) { top = k; break; } }
+    const top = sommet(face, a, b);
     if (top < 0) continue;
+
+    // L'outil est POSÉ sur la pierre : il ne touche que ce qui affleure sous
+    // lui. Une colonne dont la surface est loin en arrière (de l'autre côté
+    // d'une arête, au fond d'un creux) n'est pas sous le fer — on n'y touche
+    // pas. Sans ça, l'outil mordait à l'opposé du curseur.
+    if (top > ref + 2 || top < ref - 2) continue;
     if (t.niveleur && top < ref) continue;   // le ciseau ne descend pas dans le creux
-    p[na] = top;
-    out.push([idx(p[0], p[1], p[2]), d / t.rayon, na]);
+
+    // Épaufrure : une colonne dont les voisines manquent n'est plus épaulée.
+    // Frapper là, c'est frapper une arête vive — la pierre part en écaille,
+    // bien au-delà du coup. C'est la faute classique du tailleur, et la raison
+    // pour laquelle on n'approche jamais une arête à la chasse.
+    let libre = 0;
+    for (const [ea, eb] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) {
+      const v = sommet(face, ea, eb);
+      if (v < 0 || v <= top - 2) libre++;
+    }
+    p[ta] = a; p[tb] = b; p[na] = top;
+    out.push([idx(p[0], p[1], p[2]), d / t.rayon, na, libre / 4]);
   }
   return out;
 }
@@ -506,16 +550,17 @@ function tap(i, face) {
   }
 
   const partis = [];
-  for (const [j, u, na] of emp) {
-    const bord = 1 - 0.55 * u * u;                                  // l'outil mord moins sur ses bords
+  for (const [j, u, na, libre] of emp) {
+    const bord = profil(t, u);                   // profil du coup, propre à l'outil
+    const arete = 1 + t.eclat * libre;           // une arête vive part en écaille
     const bruit = t.grain ? (1 - t.grain / 2 + Math.random() * t.grain) : 1;
     wearAx[j] = na;
-    wear[j] += t.usure * mordant * bord * bruit;
+    wear[j] += t.usure * mordant * bord * arete * bruit;
     if (wear[j] >= 1) { solid[j] = 0; wear[j] = 0; partis.push(j); }
   }
   const tombes = partis.length ? shed() : [];
   coups++;
-  if (partis.length || tombes.length) copeaux(partis.concat(tombes));
+  if (partis.length || tombes.length) { majTops(); copeaux(partis.concat(tombes)); }
   else poussiere(i);
   shake = Math.max(shake, 0.8 + t.usure * 3.2);
   return partis.length + tombes.length;
@@ -701,7 +746,7 @@ function frame(now) {
     while (tapAcc >= 1 && frappes < 5) { tapAcc -= 1; tap(hoverI, hoverF); frappes++; }
   }
   if (frappes) {
-    paintPick();
+    majTops(); paintPick();
     const h = pick(mx, my);                               // la surface a bougé sous l'outil
     if (h) { hoverI = h.i; hoverF = h.face; }
     const g = gauges();
@@ -721,8 +766,12 @@ function frame(now) {
   const sig = `${hoverI}|${hoverF}|${tool}|${working}|${mx | 0},${my | 0}`;
   if (sig !== lastSig) { lastSig = sig; needDraw = true; majReste(); }
   if (!needDraw && !chips.length) return;
-  preview = (!done && hoverI >= 0)
-    ? new Set(empreinte(hoverI, hoverF, TOOLS[tool]).map(e => e[0])) : new Set();
+  // l'aperçu porte l'intensité du coup, pas juste sa surface : on voit le
+  // profil du cratère avant de frapper
+  preview.clear();
+  if (!done && hoverI >= 0)
+    for (const [j, u] of empreinte(hoverI, hoverF, TOOLS[tool]))
+      preview.set(j, profil(TOOLS[tool], u));
   draw();
   needDraw = false;
 }
@@ -792,7 +841,7 @@ function nouvellePierre() {
   document.getElementById("end").classList.remove("on");
   GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / START) + "%";
   const g = gauges(); showGauges(g, null); prev = g;
-  paintPick(); needDraw = true;
+  majTops(); paintPick(); needDraw = true;
 }
 document.getElementById("again").addEventListener("click", nouvellePierre);
 
