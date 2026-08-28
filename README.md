@@ -35,9 +35,10 @@ C'est ce que testent les protos.
 ## État d'avancement
 
 - [x] `DESIGN.md` — la vision figée (à lire en premier)
-- [x] Proto 1 — **jugé le 29/08/2026 : NON.** Le geste est bon, sa répétition
-      ne l'est pas. « Il y a un aspect redondant ; envie d'une 2e pierre : non. »
-      Analyse complète dans `proto-01-solo/NOTES.md`.
+- [x] Proto 1 — **jugé le 29/08/2026 : NON** (« aspect redondant »), puis
+      **réparé** : chaque pierre arrive avec une commande différente, et « à la
+      cote » a désormais une tolérance qui dépend de la face. Il n'existe plus
+      de méthode universelle — mesuré 4/4. **À rejuger.**
 - [ ] Proto 2 — **bloqué par le protocole** tant que la redondance du Proto 1
       n'est pas comprise. Trois de ses causes sont structurelles, pas des
       réglages : un seul modèle à vie, une seule stratégie gagnante, aucun aval.

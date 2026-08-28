@@ -293,6 +293,77 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
+## Réparation du NON — la commande fait la méthode
+
+Cause retenue : **il n'existait qu'une seule bonne méthode**, donc plus aucune
+décision. La réparation ne pouvait pas être un réglage — il fallait une raison
+pour que la bonne méthode *change*.
+
+### Chaque pierre arrive avec une commande
+
+Quatre commandes, tirées au sort, jamais deux fois la même d'affilée. Chacune
+dit **ce qui compte pour elle** — et donc ce qui ne compte pas :
+
+| Commande | Ce qu'elle demande | Ce qu'elle pardonne |
+|---|---|---|
+| **Parement** | une seule face impeccable | les deux autres, à la cote et basta |
+| **Assise** | le lit du dessus plan (il portera la suivante) | les côtés |
+| **Angle** | deux faces vues **et l'arête entre elles** | rien près de l'arête |
+| **Blocage** | être à la cote, et vite | tout le reste : personne ne la verra |
+
+### Ce qui a rendu l'arbitrage possible : la tolérance
+
+Le vrai verrou n'était pas les commandes, c'était que **seul le ciseau
+permettait d'être à la cote** — donc il restait obligatoire partout, donc une
+seule méthode. Tant que « à la cote » voulait dire « au cube près », rien ne
+pouvait changer.
+
+Une pierre à la cote n'est pas une pierre au cube près : le tailleur mesure au
+calibre. Une face cachée a droit à **un rang et demi de jeu**, une face vue à
+**un demi**. La tolérance joue **des deux côtés** — pas assez ôté *et* trop ôté.
+
+Conséquence directe : finir une face cachée à la pointe devient **correct**.
+Le ciseau n'est plus obligatoire, il est un choix qui coûte du temps.
+(C'est exactement le DESIGN §3 : « il n'y a pas UN cube parfait, mais une
+*famille* de pierres valables ».)
+
+Trois autres changements ont suivi :
+- **Le ciseau est devenu lent** (0,10 rang par coup contre 0,20). Il rendait
+  4,5 cubes/s contre 23 pour la chasse — dresser une face coûte enfin du temps.
+- **Le temps a un vrai poids** (jusqu'à 45 % de la note sur un blocage) et sa
+  référence est calée sur le jeu *juste*, plus sur le jeu appliqué.
+- **Le rouge suit la tolérance.** Mordre un demi-rang sur une face cachée n'est
+  plus signalé comme une faute : ce n'en est pas une. Sur une pierre de
+  parement, on voit littéralement la face cachée rester propre pendant que la
+  face vue se couvre de rouge pour le même geste.
+
+### La mesure qui valide — et le test que j'avais d'abord raté
+
+Premier test : « la stratégie gagnante change-t-elle selon la commande ? »
+Mauvais critère — une méta-stratégie qui s'adapte gagne partout par
+construction, ce qui ne prouve rien.
+
+Bon test : **appliquer le plan de chaque commande à toutes les autres.** Si la
+diagonale gagne, c'est qu'aucune façon de tailler n'est universelle.
+
+| ↓ commande / plan → | parement | assise | angle | blocage | tout dresser |
+|---|---|---|---|---|---|
+| **Parement** | **99** / 53 s | 90 | 90 | 89 | 90 |
+| **Assise** | 91 | **99** / 55 s | 82 | 90 | 91 |
+| **Angle** | 95 | 92 | **100** / 80 s | 92 | 98 |
+| **Blocage** | 96 | 97 | 78 | **99** / 48 s | 82 |
+
+**Diagonale : 4 / 4.** Les écarts hors diagonale vont de 8 à 22 points, et
+« tout dresser » — l'ancienne stratégie unique — perd désormais sur trois
+commandes sur quatre. Le temps de travail va de **48 s à 80 s** selon la
+commande, avec des outils différents.
+
+⚠️ Ce que cette mesure prouve : le jeu **récompense** des méthodes différentes.
+Ce qu'elle ne prouve pas : que ça se *ressent*. Seule une partie le dira, et
+c'est la même question qu'avant — **envie d'une pierre de plus ?**
+
+---
+
 ## VERDICT — rendu le 29/08/2026
 
 > « Il y a un aspect redondant. À ta question "ai-je envie de tailler une
@@ -349,5 +420,6 @@ plutôt qu'au geste.
 pour ne pas entendre un NON. Il ne doit pas servir à passer outre le protocole.
 Il doit servir à **choisir le bon test suivant** — voir la décision ci-dessous.
 
-- Décision : passer au Proto 2 ? → **EN ATTENTE** (voir ci-dessous)
+- Décision : passer au Proto 2 ? → **EN ATTENTE** — le Proto 1 a été réparé
+  (voir « Réparation du NON » ci-dessus) et doit être rejugé.
 - Notes libres :
