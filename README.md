@@ -25,12 +25,14 @@ La **méthode**, pas le contenu (voir `docs/analyse-pokemon.md`) :
 3. **Social par nécessité** — le château ne se bâtit pas seul, l'interdépendance
    est structurelle. C'est l'effet réseau qui a rendu Pokémon pérenne.
 
-## Le pari central (non encore validé)
+## Le pari central — **validé le 29/08/2026**
 
-Toute l'analyse (neuro / socio / game design) converge sur **une seule
-inconnue** : est-ce que recevoir et prolonger la pierre d'un inconnu crée un
-lien qu'on *ressent* ? Si oui, le jeu tient. Si non, il manque l'essentiel.
-C'est ce que testent les protos.
+L'inconnue était : est-ce que recevoir et prolonger la pierre d'un inconnu crée
+quelque chose qu'on *ressent* ? Le Proto 2 a répondu : **oui**. Reprendre une
+pierre tordue ou bâclée est plus prenant que tailler un bloc neuf.
+
+Restriction : le proto simule l'inconnu par un bot. Le lien avec une **vraie**
+personne — le cœur social — reste à tester, et ne peut pas l'être en solo.
 
 ## État d'avancement
 
@@ -40,9 +42,9 @@ C'est ce que testent les protos.
       une tolérance qui dépend de la face — puis **rejugé OUI** le même jour :
       « j'aime beaucoup les challenges d'une pierre à l'autre », et « le frisson
       est présent ». **Les deux questions du juge répondent OUI.**
-- [x] Proto 2 — **codé, pas encore jugé.** Ouvrir `proto-02-heritage/index.html`,
-      faire les trois pierres, puis répondre : « Le tordu » est-il PLUS prenant
-      que « Le propre » ? C'est le juge de paix de tout le projet.
+- [x] Proto 2 — **CONCLUANT. Le pari est gagné.** Jugé le 29/08 : « les coups
+      tordus et bâclés sont plus fun ». L'imperfection héritée crée de la
+      valeur — le juge de paix du projet est passé.
 
 ## Ordre de travail (à respecter strictement)
 

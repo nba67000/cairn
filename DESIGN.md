@@ -244,3 +244,72 @@ Hérité de la réflexion sur les rencontres physiques, transposé :
 **Place vide occupée par Cairn** : hériter en asynchrone du chantier imparfait
 d'un inconnu, et *briller en le rattrapant*, dans une chaîne de métiers, sur un
 objet commun gravé et invandalisable. Jamais assemblé ainsi.
+
+---
+
+## 10. Ce que les protos ont tranché (29/08/2026)
+
+### Les deux verdicts
+
+- **Proto 1 — OUI sur ses deux questions.** Le geste de taille est satisfaisant,
+  et le frisson du dernier coup est là. Mais pas du premier coup : la première
+  version a été jugée *redondante*, et la cause était qu'il n'existait qu'une
+  seule bonne méthode. Corrigé en donnant à chaque pierre une **commande** qui
+  dit ce qui compte pour elle — d'où un arbitrage réel, mesuré.
+- **Proto 2 — OUI. LE PARI EST GAGNÉ.** « Les coups tordus et bâclés sont plus
+  fun. » Hériter du travail imparfait d'un inconnu et composer avec est *plus*
+  prenant que partir d'un bloc neuf. L'imperfection héritée crée de la valeur.
+
+> Restriction : l'inconnu est simulé par un bot. Le lien avec une **vraie**
+> personne n'est pas testé et ne peut pas l'être en solo (§1). C'est l'étage
+> suivant, et c'est maintenant la principale inconnue du projet.
+
+### Deux enseignements de méthode, chèrement acquis
+
+1. **Le score ne doit pas avoir une seule bonne réponse.** La première version
+   du Proto 1 donnait 94 à une ligne de jeu et 42 à toutes les autres : ce n'est
+   pas du skill, c'est de l'exécution — et l'exécution ne donne pas envie de
+   recommencer. Une table de stratégies saine montre plusieurs lignes viables.
+2. **« À la cote » n'est pas « au cube près ».** Tant que l'exactitude était
+   exigée partout, l'outil fin restait obligatoire partout, donc une seule
+   méthode. La **tolérance**, variable selon que la face se verra ou non, est ce
+   qui a débloqué tout le reste. C'est le §3 appliqué : une *famille* de pierres
+   valables, pas un modèle unique.
+
+### La réserve qui reste : ça ne ressemble pas encore à un tailleur de pierre
+
+Retour de partie répété, jusqu'au bout : *« ça ressemble au jeu Sixty Four
+plutôt qu'à un tailleur de pierre »*. C'est juste, et il faut distinguer deux
+problèmes que j'ai longtemps confondus :
+
+- **Le verbe** — réglé. On ne fait plus disparaître des paquets de cubes ; on
+  maintient, on balaie, l'outil frappe en cadence et rabote des copeaux. Ça
+  *joue* comme de la taille.
+- **La matière** — pas réglé. Ça *ressemble* encore à du minage abstrait.
+
+Causes, par ordre d'importance :
+
+1. **La maille de cubes.** La surface est un treillis de cubes séparés, aux
+   facettes nettes. C'est *la* signature du jeu de voxels. Or elle n'a jamais
+   été un choix de design : c'était une **facilité de prototype**, imposée par
+   le brief (iso 2D, cubes empilés) pour pouvoir coder vite en canvas 2D.
+   → **Décision : la maille de cubes ne survit pas au prototype.** Le vrai jeu
+   doit présenter une surface **continue et irrégulière**. Le moteur porte déjà
+   une usure fractionnaire (un cube à demi rongé est reculé d'autant) : la suite
+   naturelle est un relief continu, pas des cubes discrets.
+2. **Le vide autour.** Le bloc flotte sur une ombre dans le noir. Pas d'établi,
+   pas d'atelier, aucune échelle, rien d'humain. Une scène de tailleur se
+   définit autant par ce qui entoure la pierre que par la pierre.
+   → Poser la pierre sur un **chevalet**, dans un lieu.
+3. **Les éclats s'évaporent.** Ils volent et disparaissent. Dans un atelier, la
+   poussière et les éclats **s'accumulent au pied du bloc** : c'est la trace
+   visible du travail fourni. Bon marché, et parfaitement dans la thèse du jeu
+   (§2, archive-mémoire).
+4. **Aucun corps.** Pas de main, pas de maillet, pas de fer dans le cadre :
+   l'outil est un cercle. Un jeu de taille montre le ciseau contre la pierre.
+5. **Le son.** Toujours interdit au proto, et c'est le canal le plus important
+   qui manque pour qu'on sente *quelqu'un* frapper de la pierre. À rouvrir en
+   premier hors proto.
+
+> Les points 1 et 2 sont structurels — ils décident de ce à quoi le jeu
+> ressemble. Les 3, 4 et 5 sont additifs et peu coûteux.

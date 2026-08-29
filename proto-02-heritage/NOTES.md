@@ -113,7 +113,44 @@ séance, ce qu'il faut pour comparer à chaud.
 
 ---
 
-## Le verdict qui décide de TOUT le projet
+## VERDICT — 29/08/2026 : **OUI**
+
+> « Les coups tordus et bâclés sont plus fun. »
+
+- **« Le tordu » vs « Le propre » : le tordu, nettement.** Et « Le bâclé » aussi.
+- **L'hypothèse centrale de Cairn est validée.** Hériter du travail imparfait
+  d'un inconnu et devoir composer avec est *plus* prenant que partir d'un bloc
+  neuf — pas un pis-aller, un moteur.
+
+C'est ce que le DESIGN §8 appelait le juge de paix de tout l'édifice :
+
+> « Si OUI → le pari est gagné. L'imperfection héritée crée de la valeur.
+> Cairn a un cœur que personne n'a. On peut construire les étages. »
+
+Les deux protos ont donc rendu leur verdict, et les deux sont OUI. Ce dépôt a
+fait ce pour quoi il existait.
+
+### Ce que ça ne dit pas encore
+
+Le proto teste l'héritage **simulé** : l'« autre » est un bot. Le lien ressenti
+avec une vraie personne inconnue — le cœur social du DESIGN §1 — n'est pas
+testé ici et ne peut pas l'être en solo. C'est la question de l'étage suivant.
+
+---
+
+## Réserve reportée : ça ne ressemble toujours pas à un tailleur de pierre
+
+> « Faut vraiment revoir ce système de casse-brique qui ressemble au jeu Sixty
+> Four plutôt qu'à un tailleur de pierre — valable proto 1 et proto 2. Mais
+> peut-être que cette étape est hors proto. »
+
+Réserve **acceptée et reportée hors proto** — voir `DESIGN.md` §10, où elle est
+consignée comme décision pour le vrai jeu. Les protos ont répondu à leurs
+questions ; les polir davantage n'apporterait plus aucune mesure.
+
+---
+
+## Le verdict qui décide de TOUT le projet## Le verdict qui décide de TOUT le projet
 
 **« Le tordu » doit être PLUS prenant que « Le propre ».**
 
