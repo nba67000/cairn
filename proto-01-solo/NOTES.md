@@ -293,6 +293,33 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
+## Régression : « je clique, rien ne se passe »
+
+Cassé par ma propre refonte des cotes variables. En rendant la taille du bloc
+variable, j'ai remplacé la constante `N` par `NMAX` partout — **sauf dans une
+ligne de `pick()`**, la fonction qui dit quel cube est sous le curseur.
+
+Chaque appel levait donc une exception. `hoverI` ne se mettait jamais à jour, et
+sans cube visé aucun coup ne peut partir. La pierre s'affichait, le panneau
+répondait, et le clic ne faisait rien. Le Proto 2, copié depuis, portait le même
+bug.
+
+### Pourquoi mes tests ne l'ont pas vu — la vraie leçon
+
+Mon banc d'essai simulait `getImageData` en renvoyant **des pixels vides**. Or
+`pick()` commence par ignorer les pixels vides : la ligne fautive n'était donc
+**jamais atteinte**. Le stub ne testait que le chemin « rien trouvé » — c'est-à-
+dire exactement le comportement du bug.
+
+> Un stub qui renvoie « rien » ne teste pas la recherche, il teste l'échec de la
+> recherche. Et il le fait passer pour un succès.
+
+Corrigé : le rasteriseur possède un vrai tampon de pixels, il fournit désormais
+un vrai `getImageData`. Un test permanent balaie **3 024 points de l'écran** et
+vérifie combien résolvent un cube — sur les deux protos, et pour chaque commande.
+
+---
+
 ## VERDICT n°2 — 29/08/2026 : **OUI**
 
 > « Oui, j'aime beaucoup les challenges d'une pierre à l'autre. Par contre chaque

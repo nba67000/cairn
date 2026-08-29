@@ -594,7 +594,7 @@ function pick(px, py) {
     const o = k * 4;
     if (d[o + 3] < 200 || d[o + 2] === 0) continue;
     const i = (d[o] | (d[o + 1] << 8)) - 1, face = d[o + 2] - 1;
-    if (i < 0 || i >= N || !solid[i] || face < 0 || face > 2) continue;
+    if (i < 0 || i >= NMAX || !solid[i] || face < 0 || face > 2) continue;
     if (k === 12) return { i, face };                    // pixel exact sous le curseur
     const key = i * 4 + face;
     tally.set(key, (tally.get(key) || 0) + 1);
