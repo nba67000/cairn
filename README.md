@@ -46,13 +46,59 @@ personne — le cœur social — reste à tester, et ne peut pas l'être en solo
       tordus et bâclés sont plus fun ». L'imperfection héritée crée de la
       valeur — le juge de paix du projet est passé.
 
-## Ordre de travail (à respecter strictement)
+## Comment lire ce dépôt
 
-1. Poser `DESIGN.md` et ce README.
-2. Coder `proto-01-solo/` — ne passer au 2 QUE s'il est concluant.
-3. Coder `proto-02-heritage/` — juge de paix : « Le tordu » doit être PLUS
-   prenant que « Le propre ».
+| Fichier | Ce qu'il contient |
+|---|---|
+| `DESIGN.md` | La vision, et **§10 : ce que les protos ont tranché**. À lire en premier. |
+| `docs/analyse-pokemon.md` | La boussole : pourquoi ce jeu existe, où est le vrai pari. |
+| `proto-01-solo/` | Le geste de taille. `NOTES.md` retrace les 4 refontes et leurs verdicts. |
+| `proto-02-heritage/` | La pierre reçue d'un inconnu. `NOTES.md` porte le verdict décisif. |
 
-Les protos sont des **instruments de mesure**, pas des jeux. Chacun répond à
-UNE question par oui/non. Tout ce qui n'aide pas à répondre (graphismes, son,
-menus, sauvegarde) est banni.
+Les deux protos sont des fichiers HTML autonomes : on les ouvre, rien à
+installer.
+
+## Ce qui est prouvé
+
+1. **Tailler est satisfaisant** — à condition qu'il n'existe pas *une seule*
+   bonne méthode. La première version du Proto 1 a été jugée redondante ; la
+   cause mesurée était une stratégie dominante unique (94 points contre 42 pour
+   toutes les autres). Réparé en donnant à chaque pierre une **commande** qui
+   dit ce qui compte pour elle.
+2. **Le frisson du dernier coup existe** — s'attarder trois secondes de trop
+   coûte une trentaine de points, et ça se voit venir coup par coup.
+3. **L'imperfection héritée crée de la valeur.** Le juge de paix du projet.
+   Reprendre une pierre tordue ou bâclée est *plus* prenant que partir d'un
+   bloc neuf.
+
+## Ce qui n'est pas prouvé
+
+1. **Le lien avec une vraie personne.** L'inconnu du Proto 2 est un bot. Toute
+   la thèse sociale du `DESIGN.md` §1 — la solidarité d'inconnus — reste
+   entièrement à tester, et c'est désormais **la principale inconnue**.
+2. **La rétention dans la durée.** Les protos se jugent en une séance. La
+   gratitude en aval et la contemplation du château (§5, moteurs 2 et 3) n'ont
+   jamais été mises à l'épreuve.
+3. **Que ça ressemble à de la taille de pierre.** Le geste *joue* juste ; l'image
+   ressemble encore à du minage abstrait. Causes analysées dans `DESIGN.md` §10 —
+   la première est la maille de cubes, qui était une facilité de prototype et
+   ne doit pas survivre.
+
+## Si on reprend
+
+Trois pistes, par ordre de risque décroissant pour le projet :
+
+1. **Le proto 3 : deux vraies personnes.** C'est là qu'est le risque restant.
+   Tout le reste est du confort à côté.
+2. **Une étude d'aspect** — relief continu au lieu de cubes, pierre posée sur un
+   chevalet, éclats qui s'accumulent. Hors proto : ça ne se mesure pas, ça se
+   regarde.
+3. **Le son.** Interdit au proto, jamais essayé. Une vingtaine de lignes de
+   WebAudio sans aucun fichier, et probablement le meilleur rapport
+   effort/ressenti qui reste.
+
+---
+
+*Les protos étaient des **instruments de mesure**, pas des jeux : chacun
+répondait à UNE question par oui/non, et tout ce qui n'aidait pas à répondre
+était banni. Ils ont répondu. On ne les polit plus.*
