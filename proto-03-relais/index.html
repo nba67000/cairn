@@ -1,0 +1,1441 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cairn — Proto 3 : le relais</title>
+<style>
+  :root{
+    --bg:#14120f; --panel:#1c1916; --line:#2e2923; --ink:#d9d0c0; --dim:#8b8073;
+    --ok:#7fb069; --bad:#c05c4e; --amber:#c08a3e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+    display:flex; overflow:hidden;
+  }
+  #stage{flex:1;position:relative;min-width:0;overflow:hidden}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair}
+  #panel{
+    width:312px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+    padding:16px 16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;
+  }
+  h1{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0;font-weight:600}
+  h2{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 7px;font-weight:600}
+  .sect{border-top:1px solid var(--line);padding-top:12px}
+
+  .tool{
+    display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+    background:#232019;border:1px solid var(--line);color:var(--ink);
+    padding:7px 10px;border-radius:3px;cursor:pointer;margin-bottom:5px;font:inherit;
+  }
+  .tool:hover{background:#2b2720}
+  .tool.on{background:#3a3225;border-color:var(--amber);color:#f0e6d4}
+  .tool b{font-size:13px;min-width:58px}
+  .tool span{font-size:11px;color:var(--dim)}
+  .tool.on span{color:#c9b795}
+  .tool i{margin-left:auto;font-style:normal;font-size:10px;color:var(--dim)}
+
+  .g{margin-bottom:11px}
+  .g .top{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;margin-bottom:3px}
+  .g .nm{color:var(--dim)}
+  .g .vl{font:12px ui-monospace,Consolas,monospace;color:var(--ink)}
+  .g .dl{font:11px ui-monospace,Consolas,monospace;margin-left:6px;opacity:0}
+  .bar{position:relative;height:9px;background:#0e0c0a;border-radius:2px;overflow:hidden}
+  .fill{position:absolute;inset:0 auto 0 0;width:0%;background:#6a6153;transition:width .18s ease}
+  .mark{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--amber);opacity:.85}
+  .hint{font-size:10.5px;color:var(--dim);margin-top:6px}
+
+  .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);margin-bottom:4px}
+  .sw{width:13px;height:13px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.4)}
+
+  button.big{
+    width:100%;padding:10px;background:#3a3225;border:1px solid var(--amber);
+    color:#f0e6d4;font:inherit;font-weight:600;border-radius:3px;cursor:pointer;
+  }
+  button.big:hover{background:#4a3f2c}
+  .foot{margin-top:auto;font-size:10.5px;color:#5f574c;line-height:1.5}
+
+  #choix{
+    position:absolute;inset:0;display:grid;place-items:center;z-index:5;
+    background:rgba(15,13,11,.96);text-align:center;
+  }
+  #choix.off{display:none}
+  #passe{
+    position:absolute;inset:0;display:none;place-items:center;z-index:6;
+    background:rgba(15,13,11,.96);text-align:center;
+  }
+  #passe.on{display:grid}
+  #chaine{display:flex;flex-wrap:wrap;gap:5px}
+  .lamain{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);
+    background:#211d18;border:1px solid var(--line);border-radius:3px;padding:3px 7px}
+  .lamain.moi{border-color:var(--amber);color:#e8dcc4}
+  #cartes{display:flex;gap:14px;justify-content:center}
+  .carte{
+    flex:1;background:#211d18;border:1px solid var(--line);border-radius:4px;
+    padding:16px 14px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;
+  }
+  .carte:hover{background:#2b2620;border-color:var(--amber)}
+  .carte b{display:block;font-size:15px;color:#e8dcc4;margin-bottom:7px}
+  .carte span{font-size:11.5px;color:var(--dim);line-height:1.5}
+  #end{
+    position:absolute;inset:0;display:none;place-items:center;
+    background:rgba(15,13,11,.9);backdrop-filter:blur(3px);
+  }
+  #end.on{display:grid}
+  .card{width:420px;text-align:center;padding:30px}
+  .score{font:600 76px/1 ui-monospace,Consolas,monospace;color:#f0e6d4}
+  .score small{font-size:26px;color:var(--dim)}
+  .verd{margin:14px 0 22px;color:#c9b795;font-size:15px;font-style:italic;line-height:1.55}
+  .subs{display:flex;justify-content:center;gap:26px;margin-bottom:26px}
+  .sub{font-size:11px;color:var(--dim)}
+  .sub b{display:block;font:600 22px/1.3 ui-monospace,Consolas,monospace;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="choix"><div class="card" style="width:620px">
+    <h2 style="letter-spacing:.16em;margin-bottom:6px">Proto 3 — le relais</h2>
+    <p style="color:#c9b795;font-size:14px;font-style:italic;margin:0 0 22px">
+      Une pierre qui passe de main en main. Tu tailles ce que tu veux,<br>
+      tu la passes, quelqu'un d'autre continue. Elle peut te revenir.</p>
+
+    <label style="display:block;font-size:11px;color:var(--dim);text-align:left;margin-bottom:5px">
+      Ta marque de tâcheron — c'est le seul mot qui voyagera</label>
+    <input id="marque" maxlength="24" placeholder="Nico" style="width:100%;padding:9px 11px;
+      background:#151310;border:1px solid var(--line);border-radius:3px;color:#e8dcc4;
+      font:inherit;font-size:14px;margin-bottom:20px">
+
+    <div style="display:flex;gap:12px">
+      <button class="carte" id="neuf"><b>Prendre un bloc neuf</b>
+        <span>Tu ouvres la chaîne. Tu tailles, tu passes, quelqu'un reprend.</span></button>
+      <button class="carte" id="recevoir"><b>Recevoir une pierre</b>
+        <span>Quelqu'un t'a envoyé un code. Colle-le : tu reprends là où il s'est arrêté.</span></button>
+    </div>
+
+    <div id="zoneRecevoir" style="display:none;margin-top:16px">
+      <textarea id="codeRecu" placeholder="Colle ici le code reçu" style="width:100%;height:90px;
+        background:#151310;border:1px solid var(--line);border-radius:3px;color:#8b8073;
+        font:11px ui-monospace,Consolas,monospace;padding:9px;resize:none"></textarea>
+      <button class="big" id="ouvrir" style="margin-top:10px">Reprendre cette pierre</button>
+      <p id="erreur" style="color:var(--bad);font-size:11.5px;margin:9px 0 0;min-height:16px"></p>
+    </div>
+  </div></div>
+
+  <div id="passe"><div class="card" style="width:560px">
+    <h2 style="letter-spacing:.16em;margin-bottom:6px">La pierre part</h2>
+    <p style="color:#c9b795;font-size:14px;font-style:italic;margin:0 0 18px" id="passeDit"></p>
+    <textarea id="codeSortant" readonly style="width:100%;height:120px;background:#151310;
+      border:1px solid var(--line);border-radius:3px;color:#8b8073;
+      font:11px ui-monospace,Consolas,monospace;padding:9px;resize:none"></textarea>
+    <button class="big" id="copierCode" style="margin-top:12px">Copier le code</button>
+    <p style="color:#5f574c;font-size:11px;margin-top:14px">
+      Envoie-le par le canal que tu veux. Celui qui le collera reprendra ta pierre
+      exactement où tu l'as laissée — et verra ce que tu as touché.</p>
+    <button id="retour" style="margin-top:16px;background:none;border:none;color:#8b8073;
+      font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline">revenir à la pierre</button>
+  </div></div>
+
+  <div id="end"><div class="card">
+    <div class="score"><span id="sScore">0</span><small>pts</small></div>
+    <div class="verd" id="sVerd"></div>
+    <div class="subs" id="subs"></div>
+    <p id="prime" style="font-size:11.5px;color:var(--dim);margin:-14px 0 22px"></p>
+    <button class="big" id="again">Reprendre une autre pierre</button>
+    <button id="copie" style="margin-top:10px;background:none;border:none;color:#8b8073;font:inherit;font-size:11px;cursor:pointer;text-decoration:underline">copier le journal de la pierre</button>
+  </div></div>
+</div>
+
+<aside id="panel">
+  <h1>Proto 1 — tailler une pierre</h1>
+
+  <div id="cmd">
+    <h2>Les mains</h2>
+    <div id="chaine" style="margin-bottom:8px"></div>
+    <p id="cmdDit" style="font-size:11.5px;color:var(--dim);margin:0;line-height:1.5"></p>
+  </div>
+
+  <div class="sect">
+    <h2>Outil</h2>
+    <button class="tool on" data-t="0"><b>Chasse</b><span>large, grêle la surface</span><i>1</i></button>
+    <button class="tool" data-t="1"><b>Pointe</b><span>approcher du trait</span><i>2</i></button>
+    <button class="tool" data-t="2"><b>Ciseau</b><span>dresser la face</span><i>3</i></button>
+    <p class="hint" id="tHint">Large et brutale. Elle abat la gangue épaisse et laisse la surface grêlée.</p>
+  </div>
+
+  <div class="sect">
+    <h2>Sous l'outil</h2>
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;color:var(--dim)">Reste à ôter</span>
+      <span id="reste" style="font:600 15px ui-monospace,Consolas,monospace;color:var(--ink)">—</span>
+    </div>
+    <p class="hint">Maintiens et <b style="font-weight:600">balaie</b> : l'outil frappe en
+    cadence et rabote. C'est le passage qui creuse, pas le coup.</p>
+  </div>
+
+  <div class="sect">
+    <h2>Jauges</h2>
+    <div class="g" id="gMat">
+      <div class="top"><span class="nm">Matière restante</span><span><span class="vl">100.0</span><span class="dl"></span></span></div>
+      <div class="bar"><div class="fill"></div><div class="mark"></div></div>
+    </div>
+    <div class="g" id="gTra">
+      <div class="top"><span class="nm">Pierre dégagée</span><span><span class="vl">0.0</span><span class="dl"></span></span></div>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
+    <div class="g" id="gPla">
+      <div class="top"><span class="nm">Planéité</span><span><span class="vl">100.0</span><span class="dl"></span></span></div>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
+    <div class="g" id="gTps">
+      <div class="top"><span class="nm">Temps alloué</span><span class="vl" id="tpsTxt">0:00 / 0:00</span></div>
+      <div class="bar"><div class="fill"></div><div class="mark"></div></div>
+    </div>
+  </div>
+
+  <div class="sect">
+    <h2>Ce que le bloc t'apprend</h2>
+    <div class="lg"><span class="sw" style="background:#463c30"></span>gangue épaisse — <b style="font-weight:600">chasse</b></div>
+    <div class="lg"><span class="sw" style="background:#86704e"></span>ça se resserre — <b style="font-weight:600">pointe</b></div>
+    <div class="lg"><span class="sw" style="background:#dba140"></span>dernier rang — <b style="font-weight:600">ciseau</b></div>
+    <div class="lg"><span class="sw" style="background:#b0bec7"></span><b style="color:#c3cfd6;font-weight:600">la pierre</b>, froide — n'y touche plus</div>
+    <div class="lg"><span class="sw" style="background:#c45c4e"></span>entaille : tu es passé sous la cote</div>
+    <div class="lg"><span class="sw" style="background:#6e6b64"></span><b style="font-weight:600">mat et gris : sa taille à lui</b> — ta taille est vive</div>
+    <p class="hint">Le bloc est <b style="font-weight:600">opaque</b> : la pierre ne se devine pas,
+    elle se découvre. Seule la surface mise à nu parle — et le chiffre sous l'outil.</p>
+    <p class="hint">Une pierre « à la cote » n'est pas une pierre au cube près : une face
+    <b style="font-weight:600">cachée</b> a droit à un rang et demi de jeu, une face
+    <b style="color:#c3cfd6;font-weight:600">vue</b> presque rien. Le rouge n'apparaît
+    qu'au-delà de ce jeu-là.</p>
+  </div>
+
+  <div class="sect">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:4px">
+      <span>Temps de taille</span><span id="temps" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0:00</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:10px">
+      <span>Coups de maillet</span><span id="coups" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0</span>
+    </div>
+    <button class="big" id="passer">Passer la pierre</button>
+    <button class="big" id="finish" style="margin-top:8px;background:#232019;border-color:var(--line)">Pierre finie</button>
+  </div>
+
+  <p class="foot">La pierre est déjà dans le bloc. Tu ne la fabriques pas,<br>
+  tu la dégages. Ce qui est ôté ne revient pas.</p>
+</aside>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ *
+ *  Cairn — Proto 3 : le relais  —  la pierre passe de main en main
+ *
+ *  Question testée : quand l'autre est une VRAIE personne, est-ce que ça change
+ *  quelque chose ? Le Proto 2 a prouvé qu'hériter d'une pierre imparfaite est
+ *  prenant, mais l'inconnu y était un bot. C'est le seul vrai risque restant.
+ *
+ *  Pas de serveur, un seul fichier : la pierre voyage dans un CODE à copier-
+ *  coller, passé par le canal qu'on veut. Asynchrone, à distance, et fidèle au
+ *  DESIGN §6 — aucune messagerie libre, seulement un objet défini par le jeu.
+ *  Le seul mot qui voyage est la marque de tâcheron.
+ *
+ *  Moteur de taille copié du Proto 2. UNE note pour la pierre, jamais par
+ *  joueur : le DESIGN §1 est coopératif, sans compétition.
+ * ------------------------------------------------------------------ */
+
+/* ---------- la commande ---------- *
+ *  LE point qui a fait échouer la version précédente : il n'existait qu'une
+ *  seule bonne méthode, donc plus aucune décision — de l'exécution. Ici, chaque
+ *  pierre arrive avec une COMMANDE qui dit *ce qui compte pour elle*. Une
+ *  pierre de blocage disparaîtra dans le mur : la dresser est du temps perdu.
+ *  Une pierre d'angle se juge sur son arête. Une pierre de parement n'a qu'une
+ *  face qui se verra — les deux autres se font vite et grossièrement.
+ *
+ *  Résultat : la « bonne » méthode change d'une pierre à l'autre, et même
+ *  d'une face à l'autre à l'intérieur d'une pierre. C'est ça, un arbitrage.
+ *  (DESIGN §3 : le score mesure la FONCTION, pas la ressemblance à un modèle.)
+ *
+ *  Chaque commande donne une PLAGE de dimensions, pas une taille fixe : deux
+ *  pierres de parement ne font jamais la même cote. Sans ça on finit par savoir
+ *  par cœur où la pierre s'arrête, et on taille sans plus rien lire. */
+const COMMANDE = {
+  nom: "Pierre de parement", cotes: [7, 7, 9], vues: [0], arete: false,
+  dit: "Une seule face se verra. Celle-là, impeccable. Les deux autres, à la cote et c'est tout.",
+  poids: { tra: 0.40, pla: 0.32, eco: 0.28 },
+};
+const COMMANDES = [COMMANDE];
+let cmd = COMMANDE;
+
+/* ---------- les mains ---------- *
+ *  Chaque cube retient QUELLE main l'a touché en dernier : 0 = bloc intact,
+ *  puis 1..n dans l'ordre où les mains sont entrées dans la chaîne. C'est
+ *  l'archive-mémoire du DESIGN §2, à l'échelle d'une pierre.                */
+let mains = [];                          // marques de tâcheron, dans l'ordre
+let moi = 1;                             // ma place dans la chaîne
+let cotesNominales = [7, 7, 9];
+let reclasse = false;
+
+/* ---------- la pierre ---------- *
+ *  Les tableaux sont dimensionnés au plus grand bloc possible et les pas
+ *  d'indexation sont FIXES ; W/D/H ne décrivent que la partie active. C'est ce
+ *  qui permet de changer la taille de la pierre à chaque commande sans
+ *  réallouer quoi que ce soit. */
+const WMAX = 14, DMAX = 14, HMAX = 16, NMAX = WMAX * DMAX * HMAX;
+// Plus de gangue qu'au Proto 1 : l'autre en a déjà ôté la moitié, il doit
+// rester un vrai chantier derrière lui — sinon on ne compare que des finitions.
+const GANGUE = 6;
+const idx = (x, y, z) => x + y * WMAX + z * WMAX * DMAX;
+
+let W = 11, D = 11, H = 13;              // bloc de carrière — dépend de la pierre
+const LIM = [W, D, H];
+let KX = 7, KY = 7, KZ = 9;              // pierre visée — tirée dans la plage
+let KEEP0 = KX * KY * KZ;
+
+const XS = new Uint8Array(NMAX), YS = new Uint8Array(NMAX), ZS = new Uint8Array(NMAX);
+const keep = new Uint8Array(NMAX);       // 1 = fait partie de la pierre visée
+const gang = new Uint8Array(NMAX);       // rangs de gangue au-dessus (1 = dernier rang)
+const gface = new Uint8Array(NMAX);      // de quelle face ce cube de gangue relève
+for (let z = 0; z < HMAX; z++) for (let y = 0; y < DMAX; y++) for (let x = 0; x < WMAX; x++) {
+  const i = idx(x, y, z); XS[i] = x; YS[i] = y; ZS[i] = z;
+}
+const entre = (a, b) => a + ((Math.random() * (b - a + 1)) | 0);
+
+function poserCommande(c, dims) {
+  cmd = c;
+  [KX, KY, KZ] = dims || c.plage.map(([a, b]) => entre(a, b));
+  KEEP0 = KX * KY * KZ;
+  W = KX + GANGUE; D = KY + GANGUE; H = KZ + GANGUE;
+  LIM[0] = W; LIM[1] = D; LIM[2] = H;
+  keep.fill(0); gang.fill(0); gface.fill(0);
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y, z);
+    keep[i] = (x < KX && y < KY && z < KZ) ? 1 : 0;
+    const e = [x - (KX - 1), y - (KY - 1), z - (KZ - 1)];
+    gang[i] = keep[i] ? 0 : Math.max(e[0], e[1], e[2]);
+    gface[i] = e[0] >= e[1] && e[0] >= e[2] ? 0 : e[1] >= e[2] ? 1 : 2;
+  }
+}
+// Qui a fait quoi : 0 = intact, 1 = l'autre, 2 = moi.
+// C'est la mémoire du geste hérité — et elle se voit sur la pierre.
+const main = new Uint8Array(NMAX);
+const solid = new Uint8Array(NMAX);
+const GR = new Float32Array(NMAX);       // le grain : des lits sédimentaires, pas du bruit
+let START = 0, SURPLUS0 = 0, REF0 = 1;   // état du bloc au premier coup d'œil
+
+// ordre peintre : du fond vers l'avant en iso = somme x+y+z croissante
+const order = Array.from({ length: NMAX }, (_, i) => i)
+  .sort((a, b) => (XS[a] + YS[a] + ZS[a]) - (XS[b] + YS[b] + ZS[b]));
+
+/* Un bloc sorti de carrière n'est pas un cube parfait : ses faces sont mangées
+   irrégulièrement. Chaque pierre est donc un caillou différent — et les
+   premiers coups consistent à suivre la forme trouvée, pas à raboter un mur.
+
+   MAIS l'érosion s'arrête au 3e rang : au premier coup d'œil, le bloc ne doit
+   montrer QUE de la gangue épaisse à dégrossir. Ni pierre, ni dernier rang —
+   ça se découvre en taillant. */
+function quarry() {
+  solid.fill(0);
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) solid[idx(x, y, z)] = 1;
+  const ph = () => Math.random() * 6.2832;
+  for (let f = 0; f < 3; f++) {
+    const a = ph(), b = ph(), c = ph(), amp = 0.9 + Math.random() * 1.5;
+    const maxCreux = Math.max(0, (LIM[f] - [KX, KY, KZ][f]) - 3);
+    if (!maxCreux) continue;
+    for (let i = 0; i < NMAX; i++) {
+      if (keep[i] || !solid[i] || gang[i] < 4) continue;
+      const p = [XS[i], YS[i], ZS[i]], na = f;
+      const t1 = p[(f + 1) % 3], t2 = p[(f + 2) % 3];
+      const e = amp * (0.55 + 0.45 * Math.sin(t1 * 0.8 + a)) * (0.55 + 0.45 * Math.sin(t2 * 0.7 + b))
+              + 0.5 * Math.sin((t1 + t2) * 0.5 + c);
+      const creux = Math.min(maxCreux, Math.max(0, Math.round(e)));
+      if (p[na] >= LIM[na] - creux) solid[i] = 0;
+    }
+  }
+  // Garde-fou : rien en dessous du 3e rang ne peut être à nu au départ.
+  // `gang >= 1` restreint au bloc actif — hors du bloc, gang vaut 0 comme pour
+  // la pierre, et sans ce test on ressuscitait tout le tableau.
+  for (let i = 0; i < NMAX; i++) if (!keep[i] && gang[i] >= 1 && gang[i] <= 2) solid[i] = 1;
+
+  const a = ph(), b = ph(), c = ph();
+  for (let i = 0; i < NMAX; i++) {
+    const v = 0.5 + 0.30 * Math.sin(ZS[i] * 0.85 + a)
+                  + 0.12 * Math.sin((XS[i] * 0.6 + YS[i] * 0.45) + b)
+                  + 0.08 * Math.sin((XS[i] - YS[i]) * 0.9 + c);
+    GR[i] = 0.90 + 0.17 * Math.max(0, Math.min(1, v));
+  }
+  START = 0; SURPLUS0 = 0;
+  for (let i = 0; i < NMAX; i++) if (solid[i]) { START++; if (!keep[i]) SURPLUS0++; }
+  REF0 = Math.max(1, aOter());        // le travail reellement du, tolerance comprise
+}
+
+/* ---------- outils ---------- *
+ *  On ne fait pas SAUTER des cubes : on USE la surface. Chaque coup de maillet
+ *  emporte un copeau — une fraction de rang — sur l'empreinte de l'outil posé
+ *  à plat sur la face. Le cube ne tombe que lorsqu'il a été entièrement rongé.
+ *  C'est ce qui sépare tailler de casser : c'est le PASSAGE qui creuse, pas le
+ *  coup. On maintient, on balaie, l'outil frappe en cadence.
+ *
+ *  rayon    empreinte de l'outil, en colonnes, SUR la face frappée
+ *  usure    fraction de rang ôtée par coup, au centre de l'empreinte
+ *  cadence  coups de maillet par seconde tant qu'on maintient
+ *  grain    irrégularité de l'usure (la chasse laisse la surface grêlée)
+ *  creux    profil du coup : 0 = rase à plat, 1 = creuse un bol concentrique
+ *  eclat    tendance à épaufrer une arête vive (voir `empreinte`)
+ *  niveleur ne touche qu'à ce qui dépasse du cube où l'outil est posé        */
+const TOOLS = [
+  { nom: "Chasse", rayon: 2.60, usure: 0.44, cadence: 3.6, grain: 0.75, creux: 0.58, eclat: 1.70, niveleur: false,
+    hint: "Large et brutale : elle ouvre un cratère. Parfaite en pleine masse — mais elle épaufre toute arête qu'elle approche." },
+  { nom: "Pointe", rayon: 1.55, usure: 0.28, cadence: 6.5, grain: 0.40, creux: 0.70, eclat: 0.85, niveleur: false,
+    hint: "Elle approche du trait sans tout emporter. Le ciseau finira." },
+  { nom: "Ciseau", rayon: 1.15, usure: 0.10, cadence: 11, grain: 0.06, creux: 0.25, eclat: 0.30, niveleur: true, aplat: 2.4,
+    hint: "Il rase à plat, sans creuser : le seul à pouvoir travailler une arête. Sur une face déjà dressée, il entame la face." },
+];
+const profil = (t, u) => Math.max(0, 1 - t.creux * u * u);   // intensité du coup au rayon u
+let tool = 0;
+
+const wear = new Float32Array(NMAX);     // part de ce cube déjà partie en copeaux (0 → 1)
+const wearAx = new Uint8Array(NMAX);        // dans quel axe on le ronge (pour le dessiner rongé)
+
+// face 0 = +x, 1 = +y, 2 = +z  →  [axe normal, tangente A, tangente B]
+const AXES = [[0, 1, 2], [1, 0, 2], [2, 0, 1]];
+
+/* ---------- état de la session ---------- */
+let coups = 0, done = false;
+let hoverI = -1, hoverF = 2;
+let working = false, tapAcc = 0, contact = 0;   // maintien, cadence, temps de taille
+let mx = 0, my = 0;
+let prev = null, shownAt = 0;
+let needDraw = true, lastSig = "";
+let shake = 0, tPrev = 0;
+const chips = [];                        // éclats et poussière
+
+/* ---------- canvas ---------- */
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const pk = document.createElement("canvas"), pctx = pk.getContext("2d", { willReadFrequently: true });
+let cw = 0, ch = 0, ox = 0, oy = 0, TW = 46, TH = 23, TZ = 27;
+
+// L'échelle est calée sur le PLUS GRAND bloc possible et ne bouge plus : une
+// petite pierre doit se voir petite. Seul le centrage suit le bloc du moment.
+function cadrer() {
+  const bw = 46, bh = 23, bz = 27;
+  const needW = (WMAX + DMAX - 2) * bw / 2 + bw;
+  const needH = (WMAX + DMAX - 2) * bh / 2 + bh + bz + (HMAX - 1) * bz;
+  const s = Math.min(Math.max(Math.min((cw - 80) / needW, (ch - 80) / needH), 0.4), 1.7);
+  TW = bw * s; TH = bh * s; TZ = bz * s;
+  ox = cw / 2;
+  oy = ch / 2 - ((W + D - 2) * TH / 2 + TZ - (H - 1) * TZ) / 2;
+}
+
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cw = Math.max(320, r.width | 0); ch = Math.max(320, r.height | 0);
+  cv.width = cw * dpr; cv.height = ch * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pk.width = cw; pk.height = ch;
+  cadrer();
+  paintPick(); needDraw = true;
+}
+new ResizeObserver(resize).observe(cv);
+
+/* ---------- géométrie iso ---------- */
+const sxOf = (x, y) => ox + (x - y) * TW / 2;
+const syOf = (x, y, z) => oy + (x + y) * TH / 2 - z * TZ;
+
+function facePaths(x, y, z) {
+  const sx = sxOf(x, y), sy = syOf(x, y, z), hw = TW / 2, hh = TH / 2;
+  return {
+    top:   [[sx, sy - hh], [sx + hw, sy], [sx, sy + hh], [sx - hw, sy]],
+    right: [[sx, sy + hh], [sx + hw, sy], [sx + hw, sy + TZ], [sx, sy + hh + TZ]],
+    left:  [[sx - hw, sy], [sx, sy + hh], [sx, sy + hh + TZ], [sx - hw, sy + TZ]],
+  };
+}
+function poly(c, p, fill, stroke) {
+  c.beginPath(); c.moveTo(p[0][0], p[0][1]);
+  for (let k = 1; k < p.length; k++) c.lineTo(p[k][0], p[k][1]);
+  c.closePath(); c.fillStyle = fill; c.fill();
+  if (stroke) { c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); }
+}
+
+/* ---------- couleurs ---------- *
+ *  La gangue est teintée par ce qu'il reste à ôter dessous : c'est ça, le
+ *  trait. Pas une ligne en pointillé qui flotte — la matière elle-même dit
+ *  « ici il reste trois rangs », « ici c'est le dernier ».                    */
+// La pierre est FROIDE (calcaire frais, fraîchement fendu), la gangue est
+// CHAUDE (peau du bloc, oxydée). Deux familles qui ne se confondent jamais.
+// Mais on ne voit ces couleurs QUE sur la surface mise à nu : le bloc s'ouvre
+// par paliers — brun épais, brun, ambre, puis la pierre. C'est l'échelle de
+// découverte, pas une carte donnée d'avance.
+const C_CORE = [176, 190, 199], C_SCAR = [196, 92, 78], C_PREV = [248, 244, 236];
+// une nuance par main, pour lire qui a fait quoi quand la pierre a circulé
+const TEINTE = [[16, 16, 20], [10, 14, 26], [24, 16, 10], [12, 22, 16], [22, 12, 22]];
+const C_GANG = [[219, 161, 64], [134, 97, 56], [92, 76, 57], [70, 60, 48]];    // 1, 2, 3, 4+ rangs
+const gangRang = i => Math.min(Math.max(gang[i], 1), 4) - 1;
+const gangCol = i => C_GANG[gangRang(i)];
+const shade = (c, f, n) => `rgb(${(c[0] * f * n) | 0},${(c[1] * f * n) | 0},${(c[2] * f * n) | 0})`;
+const mix = (a, b, t) => t <= 0 ? a : [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+/* ---------- rendu ---------- */
+let preview = new Map();          // cube visé -> intensité du coup (0 au bord, 1 au centre)
+
+// Un cube à demi rongé est dessiné RECULÉ dans l'axe où on l'use : la surface
+// s'enfonce par fractions de cube au lieu de sauter d'un rang d'un coup. C'est
+// ce qui fait qu'on voit un copeau partir plutôt qu'une brique disparaître.
+function wpos(i) {
+  const p = [XS[i], YS[i], ZS[i]];
+  if (wear[i] > 0) p[wearAx[i]] -= wear[i] * 0.85;
+  return p;
+}
+function drawCube(i, ex, ey, ez, col, alpha, str, g) {
+  const p = wpos(i), f = facePaths(p[0], p[1], p[2]);
+  ctx.globalAlpha = alpha;
+  if (ez) poly(ctx, f.top,   shade(col, 1.00, g), str);
+  if (ey) poly(ctx, f.left,  shade(col, 0.70, g), str);
+  if (ex) poly(ctx, f.right, shade(col, 0.52, g), str);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.save();                                            // l'ombre qui pose la pierre au sol
+  ctx.translate(ox, oy + (W + D - 2) * TH / 2 + TZ * 0.55);
+  ctx.scale(1, TH / TW);
+  ctx.beginPath(); ctx.arc(0, 0, (W + D - 2) * TW * 0.27, 0, 6.2832);
+  ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
+  ctx.restore();
+
+  // Le bloc est OPAQUE. On ne voit que ce qu'on a mis à nu : la pierre ne se
+  // devine pas à travers la gangue, elle se découvre en taillant. Un cube dit
+  // ce qu'il est seulement quand il est en surface.
+  for (const i of order) {
+    if (!solid[i]) continue;
+    const x = XS[i], y = YS[i], z = ZS[i];
+    const ex = x + 1 >= W || !solid[i + 1];
+    const ey = y + 1 >= D || !solid[i + WMAX];
+    const ez = z + 1 >= H || !solid[i + WMAX * DMAX];
+    if (!ex && !ey && !ez) continue;                       // cube enterré : invisible
+    const face = ez ? 2 : ex ? 0 : 1, ta = AXES[face][1], tb = AXES[face][2];
+    const q = [x, y, z], a = q[ta], b = q[tb], h = q[face];   // AXES[f][0] === f
+
+    // L'entaille est relative à la TOLÉRANCE de la face : sur une face cachée,
+    // mordre un demi-rang n'est pas une faute, c'est être à la cote. Le rouge
+    // ne doit crier que là où la commande, elle, crierait.
+    let col;
+    if (keep[i]) {
+      const sous = -(h - ([KX, KY, KZ][face] - 1) - wear[i]) - tolerance(face);
+      col = sous > 0 ? mix(C_CORE, C_SCAR, Math.min(1, sous / 1.2)) : C_CORE;
+    } else col = gangCol(i);
+
+    // LA TRACE DE L'AUTRE. Une taille fraîche est vive ; une taille qui a pris
+    // l'air est mate et grise. On distingue donc d'un coup d'œil ce qu'il a
+    // laissé de ce que je viens de faire — et on voit ma part gagner du terrain.
+    // LA MAIN. La mienne est vive — coupe fraîche. Celles des autres ont pris
+    // l'air : mates, et chacune avec sa nuance, pour qu'on distingue une main
+    // d'une autre quand la pierre a déjà circulé. C'est l'archive du DESIGN §2.
+    const m = main[i];
+    if (m && m !== moi) {
+      const gris = (col[0] + col[1] + col[2]) / 3, t = TEINTE[m % TEINTE.length];
+      col = mix(col, [gris * 0.80 + t[0], gris * 0.84 + t[1], gris * 0.92 + t[2]], 0.38);
+    }
+
+    // l'empreinte de l'outil éclaire la pierre en dégradé : au centre du coup
+    // c'est vif, au bord ça s'éteint. On voit le creux qu'on va faire.
+    const pv = preview.get(i);
+    if (pv !== undefined) col = mix(col, C_PREV, 0.30 + 0.70 * pv);
+
+    // pas de maillage : la forme se lit par l'ombre. Une colonne encaissée
+    // entre des voisines plus hautes s'assombrit — c'est ce qui donne au coup
+    // sa lecture de cratère plutôt que de trou carré.
+    let hauts = 0;
+    if (sommet(face, a + 1, b) > h) hauts++;
+    if (sommet(face, a - 1, b) > h) hauts++;
+    if (sommet(face, a, b + 1) > h) hauts++;
+    if (sommet(face, a, b - 1) > h) hauts++;
+    drawCube(i, ex, ey, ez, col, 1, null, GR[i] * (1 - 0.22 * hauts / 4));
+  }
+
+  drawChips();
+  drawOutil();
+}
+
+// Le fer de l'outil posé sur la face, à l'échelle de son empreinte, et la
+// mesure au point de travail. Puisqu'on ne voit plus la pierre à travers la
+// gangue, c'est CE chiffre qui dit où l'on en est — comme un tailleur qui
+// sonde son ouvrage au lieu de consulter un plan.
+function drawOutil() {
+  if (done || hoverI < 0) return;
+  const t = TOOLS[tool], r = t.rayon * TW * 0.5;
+  ctx.save(); ctx.translate(mx, my);
+  ctx.save(); ctx.scale(1, 0.62);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832);
+  ctx.strokeStyle = working ? "rgba(255,244,226,.85)" : "rgba(232,222,204,.45)";
+  ctx.lineWidth = working ? 2.4 : 1.4; ctx.stroke();
+  ctx.restore();
+
+  const m = mesure();
+  if (m) {
+    ctx.font = "600 12px ui-monospace,Consolas,monospace";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const w = ctx.measureText(m.txt).width, x = r + 10, y = -r * 0.62 - 6;
+    ctx.fillStyle = "rgba(16,14,11,.72)";
+    ctx.fillRect(x - 5, y - 9, w + 10, 18);
+    ctx.fillStyle = m.col;
+    ctx.fillText(m.txt, x, y);
+  }
+  ctx.restore();
+}
+
+function drawChips() {
+  for (const p of chips) {
+    const k = 1 - p.t / p.life;
+    ctx.globalAlpha = Math.max(0, k) * p.a;
+    if (p.dust) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + 2.2 * (1 - k)), 0, 6.2832);
+      ctx.fillStyle = "rgba(196,182,158,.5)"; ctx.fill();
+    } else {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+      ctx.fillStyle = p.col; ctx.fillRect(-p.s, -p.s * .7, p.s * 2, p.s * 1.4);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- picking : le buffer encode l'index du cube ET la face cliquée ---------- */
+function paintPick() {
+  pctx.clearRect(0, 0, cw, ch);
+  for (const i of order) {
+    if (!solid[i]) continue;
+    const x = XS[i], y = YS[i], z = ZS[i];
+    const ex = x + 1 >= W || !solid[i + 1];
+    const ey = y + 1 >= D || !solid[i + WMAX];
+    const ez = z + 1 >= H || !solid[i + WMAX * DMAX];
+    if (!ex && !ey && !ez) continue;
+    const p = wpos(i), v = i + 1, f = facePaths(p[0], p[1], p[2]);
+    const c = fc => `rgb(${v & 255},${(v >> 8) & 255},${fc + 1})`;
+    if (ez) poly(pctx, f.top,   c(2), null);
+    if (ey) poly(pctx, f.left,  c(1), null);
+    if (ex) poly(pctx, f.right, c(0), null);
+  }
+}
+function pick(px, py) {
+  px |= 0; py |= 0;
+  if (px < 2 || py < 2 || px > cw - 3 || py > ch - 3) return null;
+  const d = pctx.getImageData(px - 2, py - 2, 5, 5).data;
+  const tally = new Map();
+  for (let k = 0; k < 25; k++) {
+    const o = k * 4;
+    if (d[o + 3] < 200 || d[o + 2] === 0) continue;
+    const i = (d[o] | (d[o + 1] << 8)) - 1, face = d[o + 2] - 1;
+    if (i < 0 || i >= NMAX || !solid[i] || face < 0 || face > 2) continue;
+    if (k === 12) return { i, face };                    // pixel exact sous le curseur
+    const key = i * 4 + face;
+    tally.set(key, (tally.get(key) || 0) + 1);
+  }
+  let best = -1, bn = 0;
+  for (const [k, n] of tally) if (n > bn) { bn = n; best = k; }
+  return best < 0 ? null : { i: (best / 4) | 0, face: best % 4 };
+}
+
+/* ---------- l'empreinte de l'outil et le coup de maillet ---------- */
+
+// L'outil est posé À PLAT sur la face frappée. Son empreinte est un disque de
+// colonnes ; sur chaque colonne il n'attaque que le cube du dessus — la peau.
+// Il ne creuse jamais un trou sphérique dans la masse : il rabote une surface.
+// Relief de la pierre vu de chaque face : pour chaque colonne, l'altitude de
+// sa surface. Recalculé à chaque coup ; l'empreinte et l'ombrage s'en servent.
+const TOPS = [new Int8Array(DMAX * HMAX), new Int8Array(WMAX * HMAX), new Int8Array(WMAX * DMAX)];
+function majTops() {
+  for (let face = 0; face < 3; face++) {
+    const [na, ta, tb] = AXES[face], T = TOPS[face], nb = LIM[tb], p = [0, 0, 0];
+    for (let a = 0; a < LIM[ta]; a++) for (let b = 0; b < nb; b++) {
+      p[ta] = a; p[tb] = b;
+      let top = -1;
+      for (let k = LIM[na] - 1; k >= 0; k--) { p[na] = k; if (solid[idx(p[0], p[1], p[2])]) { top = k; break; } }
+      T[a * nb + b] = top;
+    }
+  }
+}
+const sommet = (face, a, b) =>
+  (a < 0 || b < 0 || a >= LIM[AXES[face][1]] || b >= LIM[AXES[face][2]])
+    ? -1 : TOPS[face][a * LIM[AXES[face][2]] + b];
+
+function empreinte(i, face, t) {
+  const [na, ta, tb] = AXES[face];
+  const c0 = [XS[i], YS[i], ZS[i]], ref = c0[na];
+  const R = Math.ceil(t.rayon), out = [], p = [0, 0, 0];
+  for (let da = -R; da <= R; da++) for (let db = -R; db <= R; db++) {
+    const d = Math.hypot(da, db);
+    if (d > t.rayon) continue;
+    const a = c0[ta] + da, b = c0[tb] + db;
+    const top = sommet(face, a, b);
+    if (top < 0) continue;
+
+    // L'outil est POSÉ sur la pierre : il ne touche que ce qui affleure sous
+    // lui. Une colonne dont la surface est loin en arrière (de l'autre côté
+    // d'une arête, au fond d'un creux) n'est pas sous le fer — on n'y touche
+    // pas. Sans ça, l'outil mordait à l'opposé du curseur.
+    if (top > ref + 2 || top < ref - 2) continue;
+    if (t.niveleur && top < ref) continue;   // le ciseau ne descend pas dans le creux
+
+    // Épaufrure : une colonne dont les voisines manquent n'est plus épaulée.
+    // Frapper là, c'est frapper une arête vive — la pierre part en écaille,
+    // bien au-delà du coup. C'est la faute classique du tailleur, et la raison
+    // pour laquelle on n'approche jamais une arête à la chasse.
+    let libre = 0;
+    for (const [ea, eb] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) {
+      const v = sommet(face, ea, eb);
+      if (v < 0 || v <= top - 2) libre++;
+    }
+    p[ta] = a; p[tb] = b; p[na] = top;
+    out.push([idx(p[0], p[1], p[2]), d / t.rayon, na, libre / 4]);
+  }
+  return out;
+}
+
+// Un coup de maillet : il ronge, il ne supprime pas. Un cube ne tombe que
+// lorsqu'il a été mangé en entier — souvent au bout de plusieurs passages.
+function tap(i, face) {
+  const t = TOOLS[tool], emp = empreinte(i, face, t);
+  if (!emp.length) return 0;
+
+  // Le ciseau ne prend que les bosses. Sur une face DÉJÀ dressée il n'y a plus
+  // de bosse : il cisaille alors un copeau plein, et la face descend vite.
+  // C'est là qu'est le coup de trop — et il est volontaire, on voit le chiffre.
+  let mordant = 1;
+  if (t.niveleur) {
+    const ref = [XS[i], YS[i], ZS[i]][AXES[face][0]];
+    const na = AXES[face][0];
+    if (!emp.some(([j]) => [XS[j], YS[j], ZS[j]][na] > ref)) mordant = t.aplat;
+  }
+
+  const partis = [];
+  for (const [j, u, na, libre] of emp) {
+    const bord = profil(t, u);                   // profil du coup, propre à l'outil
+    const arete = 1 + t.eclat * libre;           // une arête vive part en écaille
+    const bruit = t.grain ? (1 - t.grain / 2 + Math.random() * t.grain) : 1;
+    wearAx[j] = na;
+    main[j] = moi;                             // à partir d'ici, ce cube est de ma main
+    wear[j] += t.usure * mordant * bord * arete * bruit;
+    if (wear[j] >= 1) { solid[j] = 0; wear[j] = 0; partis.push(j); }
+  }
+  const tombes = partis.length ? shed() : [];
+  coups++;
+  if (partis.length || tombes.length) { majTops(); copeaux(partis.concat(tombes)); }
+  else poussiere(i);
+  shake = Math.max(shake, 0.8 + t.usure * 3.2);
+  return partis.length + tombes.length;
+}
+
+// ce qui n'est plus porté par le sol tombe : l'éclat part, il ne revient pas
+function shed() {
+  const seen = new Uint8Array(NMAX), st = [];
+  for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y, 0);
+    if (solid[i] && !seen[i]) { seen[i] = 1; st.push(i); }
+  }
+  if (!st.length) { for (let i = 0; i < NMAX; i++) if (solid[i]) { seen[i] = 1; st.push(i); break; } }
+  while (st.length) {
+    const i = st.pop(), x = XS[i], y = YS[i], z = ZS[i];
+    const nb = [x > 0 && idx(x - 1, y, z), x + 1 < W && idx(x + 1, y, z),
+                y > 0 && idx(x, y - 1, z), y + 1 < D && idx(x, y + 1, z),
+                z > 0 && idx(x, y, z - 1), z + 1 < H && idx(x, y, z + 1)];
+    for (const j of nb) if (j !== false && solid[j] && !seen[j]) { seen[j] = 1; st.push(j); }
+  }
+  const fallen = [];
+  for (let i = 0; i < NMAX; i++) if (solid[i] && !seen[i]) { solid[i] = 0; fallen.push(i); }
+  return fallen;
+}
+
+/* ---------- copeaux et poussière ---------- *
+ *  Un coup de maillet ne fait pas exploser la pierre : il détache un copeau et
+ *  soulève un peu de poussière. Petit, répété, continu.                       */
+function copeaux(list) {
+  const n = Math.min(9, 2 + list.length);
+  for (let k = 0; k < n; k++) {
+    const i = list[(Math.random() * list.length) | 0];
+    const c = keep[i] ? C_CORE : gangCol(i);
+    chips.push({
+      x: sxOf(XS[i], YS[i]) + (Math.random() - .5) * TW * .5,
+      y: syOf(XS[i], YS[i], ZS[i]) + (Math.random() - .5) * TZ * .5,
+      vx: (Math.random() - .5) * 190, vy: -55 - Math.random() * 130,
+      s: TW * (0.035 + Math.random() * 0.055), ang: Math.random() * 6.28, va: (Math.random() - .5) * 14,
+      t: 0, life: .40 + Math.random() * .40, a: 1,
+      col: `rgb(${c[0] * .8 | 0},${c[1] * .8 | 0},${c[2] * .8 | 0})`,
+    });
+  }
+  poussiere(list[0]);
+}
+function poussiere(i) {
+  const x = sxOf(XS[i], YS[i]), y = syOf(XS[i], YS[i], ZS[i]);
+  for (let k = 0; k < 2; k++)
+    chips.push({ x: x + (Math.random() - .5) * TW * .7, y: y + (Math.random() - .5) * TZ * .7,
+      vx: (Math.random() - .5) * 34, vy: -14 - Math.random() * 24, s: TW * .085,
+      t: 0, life: .35 + Math.random() * .35, a: .40, dust: true, ang: 0, va: 0 });
+}
+function stepChips(dt) {
+  for (let k = chips.length - 1; k >= 0; k--) {
+    const p = chips[k];
+    p.t += dt;
+    if (p.t >= p.life) { chips.splice(k, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.ang += p.va * dt;
+    if (!p.dust) p.vy += 900 * dt; else { p.vy *= .94; p.vx *= .94; }
+  }
+}
+
+/* ---------- l'autre tailleur ---------- *
+ *  On rejoue quelqu'un sur le bloc. Pas un motif dessiné : de vrais coups, avec
+ *  les vrais outils. Ce qu'il laisse, c'est ce que son tempérament laisse.     */
+
+// la peau : pour chaque colonne de chaque face, le cube du dessus et sa
+// profondeur au-dessus de la cote (>0 = gangue restante, <0 = sous la cote)
+function peau() {
+  const K = [KX, KY, KZ], out = [];
+  for (let face = 0; face < 3; face++) {
+    const [na, ta, tb] = AXES[face];
+    for (let a = 0; a < LIM[ta]; a++) for (let b = 0; b < LIM[tb]; b++) {
+      const top = sommet(face, a, b);
+      if (top < 0) continue;
+      const p = [0, 0, 0]; p[ta] = a; p[tb] = b; p[na] = top;
+      out.push([idx(p[0], p[1], p[2]), face, top - (K[na] - 1)]);
+    }
+  }
+  return out;
+}
+
+// il frappe tant qu'il reste des colonnes que `veut` retient
+function ilTaille(outil, veut, maxCoups) {
+  const memo = tool;
+  tool = outil;
+  for (let k = 0; k < maxCoups; k++) {
+    const c = peau().filter(veut);
+    if (!c.length) break;
+    const t = c[(Math.random() * c.length) | 0];
+    hoverF = t[1];
+    tap(t[0], t[1]);
+    majTops();
+  }
+  tool = memo;
+}
+
+// Déclasser : la pierre visée rétrécit, mais le BLOC ne bouge pas — il est
+// déjà taillé, on ne peut pas le redimensionner sous la matière. On recalcule
+// donc seulement ce qui est pierre et ce qui est gangue, à cotes réduites.
+function declasser(neuf) {
+  [KX, KY, KZ] = neuf; KEEP0 = KX * KY * KZ;
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y, z);
+    keep[i] = (x < KX && y < KY && z < KZ) ? 1 : 0;
+    const e = [x - (KX - 1), y - (KY - 1), z - (KZ - 1)];
+    gang[i] = keep[i] ? 0 : Math.max(e[0], e[1], e[2]);
+    gface[i] = e[0] >= e[1] && e[0] >= e[2] ? 0 : e[1] >= e[2] ? 1 : 2;
+  }
+}
+
+// recalcule ce qui est pierre et ce qui est gangue, sans toucher au bloc
+function recoter(k) {
+  [KX, KY, KZ] = k; KEEP0 = KX * KY * KZ;
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y, z);
+    keep[i] = (x < KX && y < KY && z < KZ) ? 1 : 0;
+    const e = [x - (KX - 1), y - (KY - 1), z - (KZ - 1)];
+    gang[i] = keep[i] ? 0 : Math.max(e[0], e[1], e[2]);
+    gface[i] = e[0] >= e[1] && e[0] >= e[2] ? 0 : e[1] >= e[2] ? 1 : 2;
+  }
+}
+
+// ce que la pierre peut ENCORE donner : si une main a trop mangé, la cote
+// annoncée n'est plus tenable et on déclasse (jamais de plus de deux cotes).
+function jauger() {
+  const K = [KX, KY, KZ], neuf = K.slice();
+  for (let face = 0; face < 3; face++) {
+    const [na, ta, tb] = AXES[face], hauts = [];
+    for (let a = 0; a < K[ta]; a++) for (let b = 0; b < K[tb]; b++) {
+      const t = sommet(face, a, b);
+      hauts.push(t < 0 ? 0 : t + 1);
+    }
+    hauts.sort((x, y) => x - y);
+    const tenable = hauts[Math.floor(hauts.length * 0.08)];
+    neuf[na] = tenable >= K[na] - 1 ? K[na] : Math.max(K[na] - 2, Math.min(K[na], tenable));
+  }
+  reclasse = neuf.some((v, k) => v < cotesNominales[k]);
+  if (neuf.some((v, k) => v < K[k])) recoter(neuf);
+}
+
+function compter() {
+  START = 0; SURPLUS0 = 0;
+  for (let i = 0; i < NMAX; i++) if (solid[i]) { START++; if (!keep[i]) SURPLUS0++; }
+  REF0 = Math.max(1, aOter());
+}
+
+// Un bloc neuf : je suis la première main de la chaîne.
+function blocNeuf(marque) {
+  cotesNominales = COMMANDE.cotes.slice();
+  poserCommande(COMMANDE, cotesNominales);
+  quarry(); wear.fill(0); wearAx.fill(0); main.fill(0);
+  mains = [marque]; moi = 1;
+  reclasse = false;
+  coups = 0; contact = 0; chips.length = 0;
+  majTops(); compter();
+}
+
+/* ---------- le code de passage ---------- *
+ *  Toute la pierre tient dans une chaîne de caractères : ses cotes, sa matière,
+ *  l'usure de chaque cube, et surtout QUELLE MAIN a touché quoi. On la passe
+ *  par le canal qu'on veut. Pas de serveur, pas de compte, rien à installer —
+ *  juste un objet qui change de mains, comme une vraie pierre.               */
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+function versB64(octets) {
+  let out = "";
+  for (let i = 0; i < octets.length; i += 3) {
+    const a = octets[i], b = octets[i + 1], c = octets[i + 2];
+    const n = (a << 16) | ((b || 0) << 8) | (c || 0);
+    out += B64[(n >> 18) & 63] + B64[(n >> 12) & 63]
+        + (b === undefined ? "=" : B64[(n >> 6) & 63])
+        + (c === undefined ? "=" : B64[n & 63]);
+  }
+  return out;
+}
+function depuisB64(txt) {
+  const t = txt.replace(/[^A-Za-z0-9+/]/g, ""), out = [];
+  for (let i = 0; i < t.length; i += 4) {
+    const n = (B64.indexOf(t[i]) << 18) | (B64.indexOf(t[i + 1]) << 12)
+            | ((B64.indexOf(t[i + 2]) & 63) << 6) | (B64.indexOf(t[i + 3]) & 63);
+    out.push((n >> 16) & 255);
+    if (i + 2 < t.length) out.push((n >> 8) & 255);
+    if (i + 3 < t.length) out.push(n & 255);
+  }
+  return out;
+}
+
+function encoderPierre() {
+  const o = [];
+  const p8 = v => o.push(v & 255);
+  const p16 = v => { p8(v); p8(v >> 8); };
+  p8(3);                                              // version du format
+  p8(KX); p8(KY); p8(KZ); p8(W); p8(D); p8(H);
+  p8(cotesNominales[0]); p8(cotesNominales[1]); p8(cotesNominales[2]);
+  p16(coups); p16(Math.round(contact)); p16(Math.round(REF0));
+  p8(mains.length);
+  for (const m of mains) {
+    const t = m.slice(0, 24); p8(t.length);
+    for (let k = 0; k < t.length; k++) p8(t.charCodeAt(k));
+  }
+  // un octet par cube (matière + main + usure), puis compression par plages :
+  // une pierre est faite de longues zones identiques, ça descend très bas
+  let val = -1, n = 0;
+  const vider = () => { while (n > 0) { const c = Math.min(255, n); p8(val); p8(c); n -= c; } };
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y, z);
+    const v = (solid[i] ? 1 : 0)
+            | (Math.min(7, main[i]) << 1)
+            | (Math.min(15, Math.round(wear[i] * 15)) << 4);
+    if (v === val) n++; else { vider(); val = v; n = 1; }
+  }
+  vider();
+  return versB64(o);
+}
+
+function decoderPierre(txt) {
+  const o = depuisB64(txt.trim());
+  let k = 0;
+  const g8 = () => o[k++], g16 = () => { const a = g8(); return a | (g8() << 8); };
+  if (o.length < 16 || g8() !== 3) throw new Error("Ce code ne ressemble pas à une pierre.");
+  const kx = g8(), ky = g8(), kz = g8(), w = g8(), d = g8(), h = g8();
+  const nom = [g8(), g8(), g8()];
+  const cps = g16(), tps = g16(), ref = g16();
+  const nm = g8(), noms = [];
+  for (let m = 0; m < nm; m++) {
+    const L = g8(); let t = "";
+    for (let c = 0; c < L; c++) t += String.fromCharCode(g8());
+    noms.push(t);
+  }
+  if (w > WMAX || d > DMAX || h > HMAX || !kx || !nm) throw new Error("Pierre illisible.");
+
+  W = w; D = d; H = h; LIM[0] = W; LIM[1] = D; LIM[2] = H;
+  cotesNominales = nom;
+  poserCommande(COMMANDE, [kx, ky, kz]);
+  W = w; D = d; H = h; LIM[0] = W; LIM[1] = D; LIM[2] = H;   // poserCommande recalcule le bloc
+  recoter([kx, ky, kz]);
+  solid.fill(0); wear.fill(0); wearAx.fill(0); main.fill(0);
+
+  let reste = 0;
+  for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+    if (reste === 0) { if (k + 1 >= o.length) throw new Error("Code tronqué."); val = o[k++]; reste = o[k++]; }
+    reste--;
+    const i = idx(x, y, z);
+    solid[i] = val & 1;
+    main[i] = (val >> 1) & 7;
+    wear[i] = ((val >> 4) & 15) / 15;
+    wearAx[i] = 2;
+  }
+  mains = noms; coups = cps; contact = tps;
+  chips.length = 0;
+  majTops(); jauger(); compter();
+  // Le travail déjà fourni compte : la jauge doit continuer là où l'autre l'a
+  // laissée, pas repartir de zéro. C'est UNE pierre, pas deux chantiers.
+  REF0 = Math.max(1, ref);
+}
+let val = 0;                                          // état de la lecture par plages
+
+// Je reprends la pierre : si ma marque est déjà dans la chaîne, je reprends ma
+// place ; sinon j'entre dedans. La chaîne se lit comme les anneaux d'un arbre.
+function entrerDansLaChaine(marque) {
+  const deja = mains.indexOf(marque);
+  if (deja >= 0) moi = deja + 1;
+  else { mains.push(marque); moi = mains.length; }
+}
+
+/* ---------- les jauges ---------- */
+function depths() {
+  const faces = [];
+  for (let face = 0; face < 3; face++) {
+    const [na, ta, tb] = AXES[face];
+    const K = [KX, KY, KZ], p = [0, 0, 0], grid = [];
+    for (let a = 0; a < K[ta]; a++) {
+      const row = [];
+      for (let b = 0; b < K[tb]; b++) {
+        p[ta] = a; p[tb] = b;
+        let m = -1, j = -1;
+        for (let k = LIM[na] - 1; k >= 0; k--) {
+          p[na] = k; const q = idx(p[0], p[1], p[2]);
+          if (solid[q]) { m = k; j = q; break; }
+        }
+        // l'usure compte : la surface réelle est fractionnaire, pas en marches
+        row.push(m < 0 ? -K[na] : (m - wear[j]) - (K[na] - 1));
+      }
+      grid.push(row);
+    }
+    faces.push(grid);
+  }
+  return faces;
+}
+
+// Planéité = régularité locale de la surface là où on a déjà approché la pierre.
+// Elle ignore ce qui n'est pas encore dégrossi : elle juge le fini, pas l'avancement.
+function planeity(tout) {
+  let sum = 0, n = 0;
+  // On ne juge le fini QUE sur les faces que la commande fait voir. Sur une
+  // face cachée, une surface en dents de scie est un travail correct — et s'y
+  // attarder est une faute contre le temps.
+  for (const face of cmd.vues.map(f => tout[f])) {
+    for (let r = 0; r < face.length; r++) for (let c = 0; c < face[r].length; c++) {
+      const a = face[r][c]; if (a > 2) continue;
+      if (c + 1 < face[r].length && face[r][c + 1] <= 2) { sum += Math.abs(a - face[r][c + 1]); n++; }
+      if (r + 1 < face.length && face[r + 1][c] <= 2)     { sum += Math.abs(a - face[r + 1][c]); n++; }
+    }
+  }
+  return n < 8 ? 100 : Math.max(0, Math.min(100, 100 - 38 * (sum / n)));
+}
+
+// L'arête vive entre les deux faces vues d'une pierre d'angle : la ligne de
+// cubes où elles se rencontrent. Épaufrée, la pierre est déclassée — c'est
+// tout l'enjeu de ce type de commande, et la raison de ne jamais y approcher
+// la chasse.
+function areteNette() {
+  let bons = 0;
+  for (let z = 0; z < KZ; z++) {
+    const i = idx(KX - 1, KY - 1, z);
+    if (solid[i]) bons += 1 - Math.min(1, wear[i] * 1.4);
+  }
+  return 100 * bons / KZ;
+}
+
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+// L'usure est fractionnaire, les jauges doivent l'être aussi : un copeau ôté
+// fait bouger l'aiguille, on n'attend pas que le cube entier tombe. C'est ce
+// qui rend le retour immédiat à CHAQUE coup de maillet — et c'est ce qui fait
+// sentir qu'on entame la pierre avant même d'avoir perdu un cube.
+// Tolérance : une pierre « à la cote » n'est pas une pierre au cube près.
+// Le tailleur mesure au calibre. Une face vue se veut juste ; une face qui
+// disparaîtra dans le mur a droit à un rang et demi de jeu. C'est ce qui rend
+// enfin viable de finir une face cachée à la pointe, sans sortir le ciseau.
+// (DESIGN §3 : il n'y a pas UN cube parfait, mais une famille de pierres valables.)
+const tolerance = face => cmd.vues.includes(face) ? 0.6 : 1.6;
+
+// Ce qui reste VRAIMENT à ôter : la gangue au-delà de la tolérance de sa face.
+// Sur une face cachée, laisser le dernier rang, c'est être à la cote — inutile
+// d'aller le chercher. Sur une face vue, il faut tout prendre.
+function aOter() {
+  let r = 0;
+  for (let i = 0; i < NMAX; i++) {
+    if (!solid[i] || keep[i]) continue;
+    r += clamp((gang[i] - wear[i]) - tolerance(gface[i]), 0, 1);
+  }
+  return r;
+}
+
+function gauges() {
+  let left = 0, surplus = 0, over = 0, ronge = 0, entame = 0;
+  for (let i = 0; i < NMAX; i++) {
+    if (solid[i]) {
+      left++;
+      if (!keep[i]) { surplus++; ronge += wear[i]; }
+      else entame += wear[i];
+    } else if (keep[i]) over++;
+  }
+
+  // ce qui est parti SOUS la cote, au-delà de la tolérance de la face
+  const DP = depths();
+  let ecart = 0, ncol = 0;
+  for (let f = 0; f < 3; f++) {
+    const tol = tolerance(f);
+    for (const row of DP[f]) for (const d of row) { if (d < -tol) ecart += -d - tol; ncol++; }
+  }
+  const sousCote = ecart / Math.max(1, ncol);
+
+  return {
+    mat: 100 * (left - ronge - entame) / START,
+    tra: clamp(100 * (1 - aOter() / REF0) - 55 * sousCote, 0, 100),
+    pla: planeity(DP),
+    surplus, over, left, sousCote, reste: aOter(),
+  };
+}
+
+/* ---------- affichage des jauges ---------- */
+const GEL = { mat: document.getElementById("gMat"), tra: document.getElementById("gTra"),
+              pla: document.getElementById("gPla"), tps: document.getElementById("gTps") };
+
+/* ---------- le journal ---------- *
+ *  Un proto est un instrument de mesure : il doit laisser une trace lisible.
+ *  Tout est dans `window.cairnLog`, résumé dans la console à la fin de chaque
+ *  pierre, et copiable d'un bouton — de quoi diagnostiquer sans capture d'écran. */
+let journal = null;
+function ouvrirJournal() {
+  journal = { mains: mains.slice(), moi, reclasse, cotesNominales: cotesNominales.join("x"),
+              commande: cmd.nom, cotes: [KX, KY, KZ].join("x"), vues: cmd.vues.slice(),
+              aOter: Math.round(REF0), alloue: Math.round(refTemps()),
+              secondesParOutil: [0, 0, 0], coupsParOutil: [0, 0, 0], courbe: [], fin: null };
+  window.cairnLog = journal;
+}
+function noterJournal(n) {
+  if (!journal) return;
+  journal.secondesParOutil[tool] += n / TOOLS[tool].cadence;
+  journal.coupsParOutil[tool] += n;
+  const der = journal.courbe[journal.courbe.length - 1];
+  if (!der || contact - der.t >= 2) {
+    const g = prev || gauges();
+    journal.courbe.push({ t: +contact.toFixed(1), outil: TOOLS[tool].nom,
+      cote: +g.tra.toFixed(1), fini: +g.pla.toFixed(1), matiere: +g.mat.toFixed(1) });
+  }
+}
+function fermerJournal(r) {
+  if (!journal) return;
+  journal.fin = { score: +r.score.toFixed(1), contact: +contact.toFixed(1), coups,
+    parts: Object.fromEntries(Object.entries(r.parts).map(([k, v]) => [k, +v.toFixed(1)])),
+    poids: cmd.poids, sousCote: +r.g.sousCote.toFixed(3), resteAOter: Math.round(r.g.reste) };
+  console.log(`%c${journal.commande} — ${journal.fin.score}%`, "font-weight:bold;font-size:14px");
+  console.log(`temps ${journal.fin.contact.toFixed(0)}s / ${journal.alloue}s alloué · ${coups} coups`);
+  console.table(TOOLS.map((t, k) => ({ outil: t.nom,
+    secondes: +journal.secondesParOutil[k].toFixed(1), coups: journal.coupsParOutil[k] })));
+  console.table([journal.fin.parts]);
+  console.log("journal complet : window.cairnLog");
+}
+
+function showGauges(g, old) {
+  for (const k of ["mat", "tra", "pla"]) {
+    const el = GEL[k], v = g[k];
+    el.querySelector(".fill").style.width = v + "%";
+    el.querySelector(".vl").textContent = v.toFixed(1);
+    const dl = el.querySelector(".dl");
+    const d = old ? v - old[k] : 0;
+    if (!old || Math.abs(d) < 0.05) { dl.style.opacity = 0; continue; }
+    dl.textContent = (d > 0 ? "+" : "") + d.toFixed(1);
+    dl.style.color = d > 0 ? "var(--ok)" : "var(--bad)";
+    dl.style.transition = "none"; dl.style.opacity = 1;
+    void dl.offsetHeight;                                // force le reflow : le flash repart de zéro
+    dl.style.transition = "opacity 1.1s ease .35s"; dl.style.opacity = 0;
+  }
+  GEL.tra.querySelector(".fill").style.background =
+    g.tra > 70 ? "#7fb069" : g.tra > 35 ? "#a8925a" : "#6a6153";
+  GEL.pla.querySelector(".fill").style.background =
+    g.pla > 70 ? "#7fb069" : g.pla > 40 ? "#a8925a" : "#c05c4e";
+}
+
+/* ---------- ce qu'il reste à ôter sous l'outil ---------- */
+// Le tailleur mesure avant de frapper. Ce chiffre remplace le trait tracé :
+// il dit, au cube près, où l'on en est par rapport à la pierre.
+function resteSousOutil() {
+  if (hoverI < 0) return null;
+  const na = AXES[hoverF][0], K = [KX, KY, KZ][na];
+  return (wpos(hoverI)[na] + 1) - K;                      // > 0 : gangue ; ≤ 0 : dans la pierre
+}
+function mesure() {
+  const d = resteSousOutil();
+  if (d === null) return null;
+  if (d > 0.05)   return { txt: d.toFixed(1).replace(".", ",") + " rang" + (d >= 2 ? "s" : ""),
+                           col: d < 1.05 ? "#e8b25f" : "#d9d0c0" };
+  if (d > -0.05)  return { txt: "au trait", col: "#8fc47a" };
+  return { txt: "−" + (-d).toFixed(1).replace(".", ","), col: "#e07a6c" };
+}
+function majReste() {
+  const el = document.getElementById("reste"), m = mesure();
+  el.textContent = m ? m.txt : "—";
+  el.style.color = m ? m.col : "var(--dim)";
+}
+
+/* ---------- boucle ---------- */
+const EL_COUPS = document.getElementById("coups"), EL_TEMPS = document.getElementById("temps");
+const EL_TPS = document.getElementById("tpsTxt");
+const mmss = s => `${s / 60 | 0}:${String(s % 60 | 0).padStart(2, "0")}`;
+
+// Le temps pèse jusqu'à la moitié de la note : il doit se voir PENDANT, pas
+// seulement au verdict. Repère à l'allocation, la barre continue au-delà.
+function majTemps() {
+  const ref = refTemps();
+  EL_TPS.textContent = `${mmss(contact)} / ${mmss(ref)}`;
+  const b = GEL.tps.querySelector(".fill");
+  b.style.width = Math.min(100, 100 * contact / (ref * 1.6)) + "%";
+  b.style.background = contact <= ref ? "#7fb069" : contact <= ref * 1.35 ? "#a8925a" : "#c05c4e";
+  GEL.tps.querySelector(".mark").style.left = (100 / 1.6) + "%";
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - tPrev) / 1000 || 0); tPrev = now;
+
+  // On maintient, l'outil frappe en cadence. C'est le passage qui creuse.
+  let frappes = 0;
+  if (working && !done && hoverI >= 0) {
+    contact += dt;
+    tapAcc += dt * TOOLS[tool].cadence;
+    while (tapAcc >= 1 && frappes < 5) { tapAcc -= 1; tap(hoverI, hoverF); frappes++; }
+    if (frappes) noterJournal(frappes);
+  }
+  if (frappes) {
+    majTops(); paintPick();
+    const h = pick(mx, my);                               // la surface a bougé sous l'outil
+    if (h) { hoverI = h.i; hoverF = h.face; }
+    const g = gauges();
+    showGauges(g, (now - shownAt > 450) ? prev : null);
+    if (now - shownAt > 450) { prev = g; shownAt = now; }
+    EL_COUPS.textContent = coups;
+    EL_TEMPS.textContent = mmss(contact);
+    majTemps();
+    needDraw = true;
+  }
+
+  if (chips.length) stepChips(dt);
+  if (shake > .05) {
+    shake *= Math.pow(.02, dt * 6);
+    cv.style.transform = `translate(${(Math.random() - .5) * shake}px,${(Math.random() - .5) * shake}px)`;
+  } else if (shake) { shake = 0; cv.style.transform = ""; }
+
+  const sig = `${hoverI}|${hoverF}|${tool}|${working}|${mx | 0},${my | 0}`;
+  if (sig !== lastSig) { lastSig = sig; needDraw = true; majReste(); }
+  if (!needDraw && !chips.length) return;
+  // l'aperçu porte l'intensité du coup, pas juste sa surface : on voit le
+  // profil du cratère avant de frapper
+  preview.clear();
+  if (!done && hoverI >= 0)
+    for (const [j, u] of empreinte(hoverI, hoverF, TOOLS[tool]))
+      preview.set(j, profil(TOOLS[tool], u));
+  draw();
+  needDraw = false;
+}
+
+/* ---------- entrées ---------- */
+cv.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("pointermove", e => {
+  const r = cv.getBoundingClientRect();
+  mx = e.clientX - r.left; my = e.clientY - r.top;
+  if (done) { hoverI = -1; return; }
+  const h = pick(mx, my);
+  if (h) { hoverI = h.i; hoverF = h.face; }
+  else hoverI = -1;                                       // sorti de la pierre : l'outil ne mord plus
+});
+cv.addEventListener("pointerleave", () => { if (!working) hoverI = -1; });
+cv.addEventListener("pointerdown", e => {
+  if (done || e.button !== 0) return;
+  cv.setPointerCapture(e.pointerId);
+  working = true; tapAcc = 1;                             // le premier coup part tout de suite
+});
+window.addEventListener("pointerup", () => { working = false; tapAcc = 0; });
+
+document.querySelectorAll(".tool").forEach(b => b.addEventListener("click", () => {
+  tool = +b.dataset.t;
+  document.querySelectorAll(".tool").forEach(o => o.classList.toggle("on", o === b));
+  document.getElementById("tHint").textContent = TOOLS[tool].hint;
+}));
+window.addEventListener("keydown", e => {
+  if (e.key >= "1" && e.key <= "3") document.querySelector(`.tool[data-t="${+e.key - 1}"]`).click();
+});
+
+/* ---------- la note ---------- *
+ *  Le score n'a plus de barème fixe : il suit la commande. Une pierre de
+ *  blocage ne se juge pas sur son fini, une pierre d'angle se juge d'abord sur
+ *  son arête. C'est ce qui fait qu'il n'y a plus « une bonne méthode ». */
+// Temps alloué par la commande : proportionnel à ce qu'il y a réellement à ôter
+// (tolérance comprise), plus le fini demandé. Calé sur une main humaine, pas
+// sur le bot d'essai qui vise juste à chaque coup et ne balaie jamais dans le
+// vide — c'est l'erreur qui donnait « temps : 0 » à une pierre pourtant à 100.
+function refTemps() { return REF0 / 6.8 + cmd.vues.length * 20 + 10; }
+
+function noter() {
+  const g = gauges(), p = cmd.poids;
+  const ref = refTemps();
+  const eco = clamp(100 - Math.max(0, contact - ref) * 0.8, 0, 100);
+  const parts = { tra: g.tra, pla: g.pla, are: areteNette(), eco };
+  let brut = 0;
+  for (const k in p) brut += p[k] * parts[k];
+  // Le rattrapage se paie. Sortir une pierre correcte d'un gâchis vaut mieux
+  // que finir un travail déjà bien engagé — c'est la thèse du jeu, et le brief
+  // en fait une exigence : « Le tordu » et « Le bâclé » doivent rapporter PLUS.
+  // Pas de plafond à 100 : une pierre rattrapée PEUT valoir plus que la
+  // commande n'exigeait. Plafonner écraserait justement ce que le brief
+  // demande de rendre visible.
+  // Le rattrapage se paie — et la pierre qui a porté plusieurs mains vaut plus
+  // que la pierre d'un seul (DESIGN §2 : le château est l'archive des gestes).
+  // La note est celle de LA PIERRE, jamais d'un joueur : pas de compétition.
+  const prime = 1 + (reclasse ? 0.18 : 0) + Math.max(0, mains.length - 1) * 0.05;
+  const score = clamp(brut * prime, 0, 140);
+  return { g, eco, score, brut, prime, parts, ref };
+}
+
+document.getElementById("finish").addEventListener("click", () => {
+  if (done) return;
+  done = true; hoverI = -1; working = false; needDraw = true;
+  const r = noter();
+  const { parts, score } = r;
+  fermerJournal(r);
+  document.getElementById("sScore").textContent = Math.round(score);
+  // le bulletin ne montre que ce que la commande demandait
+  const cases = Object.keys(cmd.poids).map(k => ({
+    tra: ["à la cote", parts.tra], pla: ["fini", parts.pla],
+    are: ["arête", parts.are], eco: ["temps", parts.eco] }[k]));
+  document.getElementById("subs").innerHTML = cases.map(([nm, v]) =>
+    `<div class="sub"><b>${Math.round(v)}</b>${nm}</div>`).join("");
+  document.getElementById("sVerd").textContent = verdict(r.g, parts, score);
+  document.getElementById("prime").innerHTML =
+    `travail brut ${Math.round(r.brut)}`
+    + (r.prime > 1 ? ` · <b style="color:#c9b795">×${r.prime.toFixed(2).replace(".", ",")}</b>` : "")
+    + ` · la pierre est de <b style="color:#c3cfd6">${mains.filter(Boolean).join(", ")}</b>`;
+  document.getElementById("end").classList.add("on");
+});
+
+// Une phrase sur le point faible. Elle est tirée des MÊMES chiffres que la
+// note — sans quoi elle peut la contredire, et c'est arrivé : « il reste de la
+// gangue » sur une pierre notée 100 à la cote, parce que la phrase lisait le
+// comptage brut pendant que la note lisait le comptage avec tolérance.
+function verdict(g, parts, score) {
+  if (cmd.arete && parts.are < 55)
+    return "L'arête est épaufrée. Sur une pierre d'angle, c'est rédhibitoire : elle finira ailleurs dans le mur.";
+  if (parts.tra < 70 && g.sousCote > 0.25)
+    return "Tu es passé sous la cote : la pierre est trop maigre. Elle servira, mais plus bas et plus petite.";
+  if (parts.tra < 70)
+    return "Tu t'es arrêté trop tôt : il reste de la gangue, la pierre n'est pas à la cote.";
+  if (score > 88)
+    return "Conforme à la commande, et proprement. Le maçon ne râlera pas.";
+  if (!cmd.vues.length && parts.eco < 85)
+    return "Elle est à la cote — mais tu as dressé une pierre que personne ne verra jamais. Tout ce temps est donné au mur pour rien.";
+  if (cmd.poids.pla && parts.pla < 65)
+    return "À la cote, mais la face vue reste en dents de scie. La chasse a laissé sa marque, le ciseau n'a pas fini.";
+  if (parts.eco < 70)
+    return "Le compte y est, mais tu as passé longtemps dessus. Un tailleur économise son geste.";
+  return "Correcte. Rien de brillant, rien à jeter.";
+}
+
+/* ---------- la pierre, d'une main à l'autre ---------- */
+const EL_CMD_DIT = document.getElementById("cmdDit");
+const NOM_FACE = ["la face droite", "la face gauche", "le dessus"];
+const $ = id => document.getElementById(id);
+
+function partDesMains() {
+  const part = new Array(mains.length + 1).fill(0);
+  let total = 0;
+  for (let i = 0; i < NMAX; i++) {
+    if (!solid[i]) continue;
+    const x = XS[i], y = YS[i], z = ZS[i];
+    if (x + 1 < W && solid[i + 1] && y + 1 < D && solid[i + WMAX] && z + 1 < H && solid[i + WMAX * DMAX]) continue;
+    part[main[i]] = (part[main[i]] || 0) + 1; total++;
+  }
+  return { part, total: Math.max(1, total) };
+}
+
+function afficherChaine() {
+  const { part, total } = partDesMains();
+  $("chaine").innerHTML = mains.map((m, k) => {
+    const pc = Math.round(100 * (part[k + 1] || 0) / total);
+    return `<span class="lamain${k + 1 === moi ? " moi" : ""}">${k + 1 === moi ? "▸ " : ""}` +
+           `${m || "?"} <b style="font-weight:600;color:#c9b795">${pc}%</b></span>`;
+  }).join("");
+  EL_CMD_DIT.innerHTML = COMMANDE.dit
+    + ` <b style="color:#c3cfd6">À dresser : ${cmd.vues.map(f => NOM_FACE[f]).join(" et ")}.</b>`
+    + (mains.length > 1
+      ? ` <b style="color:#c9b795">Ce qui est mat n'est pas de toi.</b>`
+      : "")
+    + (reclasse
+      ? ` <b style="color:#e8b25f">La cote annoncée (${cotesNominales.join("×")}) n'est plus tenable :
+          au mieux ${[KX, KY, KZ].join("×")}. Coupe le reste à cette mesure-là.</b>`
+      : "");
+}
+
+function auTravail() {
+  done = false; prev = null; hoverI = -1; working = false;
+  EL_COUPS.textContent = coups; EL_TEMPS.textContent = mmss(contact);
+  GEL.pla.style.display = cmd.poids.pla ? "" : "none";
+  $("end").classList.remove("on");
+  $("passe").classList.remove("on");
+  $("choix").classList.add("off");
+  GEL.mat.querySelector(".mark").style.left = (100 * KEEP0 / START) + "%";
+  afficherChaine();
+  const g = gauges(); showGauges(g, null); prev = g;
+  ouvrirJournal(); majTemps();
+  cadrer(); paintPick(); needDraw = true;
+}
+
+const maMarque = () => ($("marque").value || "").trim().slice(0, 24) || "sans marque";
+
+$("neuf").addEventListener("click", () => { blocNeuf(maMarque()); auTravail(); });
+$("recevoir").addEventListener("click", () => {
+  $("zoneRecevoir").style.display = "block"; $("codeRecu").focus();
+});
+$("ouvrir").addEventListener("click", () => {
+  try {
+    decoderPierre($("codeRecu").value);
+    entrerDansLaChaine(maMarque());
+    $("erreur").textContent = "";
+    auTravail();
+  } catch (e) { $("erreur").textContent = e.message; }
+});
+
+/* passer la pierre : on fige, on encode, on montre le code */
+$("passer").addEventListener("click", () => {
+  working = false;
+  const g = gauges();
+  $("codeSortant").value = encoderPierre();
+  $("passeDit").textContent = reclasse
+    ? `Tu la passes déclassée à ${[KX, KY, KZ].join("×")} — celui qui suit devra faire avec.`
+    : `Tu la passes à ${g.tra.toFixed(0)} % de la cote. Ce que tu laisses, un autre le trouvera.`;
+  $("passe").classList.add("on");
+});
+$("retour").addEventListener("click", () => { $("passe").classList.remove("on"); needDraw = true; });
+$("copierCode").addEventListener("click", e => {
+  const t = $("codeSortant").value;
+  navigator.clipboard.writeText(t).then(
+    () => { e.target.textContent = "code copié — envoie-le"; },
+    () => { $("codeSortant").select(); e.target.textContent = "sélectionné : Ctrl+C"; });
+});
+
+$("again").addEventListener("click", () => {
+  $("end").classList.remove("on");
+  $("choix").classList.remove("off");
+  $("zoneRecevoir").style.display = "none";
+});
+$("copie").addEventListener("click", e => {
+  const t = JSON.stringify(journal, null, 1);
+  navigator.clipboard.writeText(t).then(
+    () => { e.target.textContent = "journal copié"; },
+    () => { console.log(t); e.target.textContent = "presse-papier refusé — journal dans la console"; });
+});
+
+/* ---------- go ---------- */
+blocNeuf("");                            // une pierre en fond, le temps de choisir
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
