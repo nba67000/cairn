@@ -298,12 +298,14 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 > « Oui, j'aime beaucoup les challenges d'une pierre à l'autre. Par contre chaque
 > pierre a la même taille, à force on sait quand s'arrêter, faudrait varier. »
 
-- **Envie d'une pierre de plus ? → OUI.** Le juge du Proto 1 est passé.
+- **Envie d'une pierre de plus ? → OUI.**
+- **Frisson du dernier coup ? → OUI** (confirmé en partie le 29/08 : « le frisson
+  est présent »).
 - La cause du NON était bien la bonne : c'était l'absence d'arbitrage. Les
   commandes l'ont réparée.
-- ⚠️ **Restriction honnête** : la seconde question du juge — *le frisson du
-  dernier coup est-il là ?* — n'a jamais été confirmée explicitement. Elle est
-  dans le modèle (mesurée), pas dans un retour de partie.
+
+**Le juge du Proto 1 est passé sur ses deux questions.** Le protocole débloque
+le Proto 2 — et cette fois sans réserve en suspens.
 
 ### Ce que le OUI a immédiatement révélé
 

@@ -38,12 +38,11 @@ C'est ce que testent les protos.
 - [x] Proto 1 — **CONCLUANT.** Jugé NON le 29/08 (« aspect redondant »), réparé
       par les commandes — chaque pierre demande autre chose, et « à la cote » a
       une tolérance qui dépend de la face — puis **rejugé OUI** le même jour :
-      « j'aime beaucoup les challenges d'une pierre à l'autre ».
-      Réserve : le *frisson du dernier coup* est mesuré mais jamais confirmé en
-      partie.
-- [ ] Proto 2 — **débloqué.** Le Proto 1 a passé son juge, le socle technique
-      tient. Reste le vrai juge de paix : « Le tordu » doit être PLUS prenant
-      que « Le propre ».
+      « j'aime beaucoup les challenges d'une pierre à l'autre », et « le frisson
+      est présent ». **Les deux questions du juge répondent OUI.**
+- [x] Proto 2 — **codé, pas encore jugé.** Ouvrir `proto-02-heritage/index.html`,
+      faire les trois pierres, puis répondre : « Le tordu » est-il PLUS prenant
+      que « Le propre » ? C'est le juge de paix de tout le projet.
 
 ## Ordre de travail (à respecter strictement)
 
