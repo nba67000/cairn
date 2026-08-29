@@ -293,6 +293,53 @@ Une pierre demande **300 à 500 coups de maillet**, 70 à 90 s de contact.
 
 ---
 
+## VERDICT n°2 — 29/08/2026 : **OUI**
+
+> « Oui, j'aime beaucoup les challenges d'une pierre à l'autre. Par contre chaque
+> pierre a la même taille, à force on sait quand s'arrêter, faudrait varier. »
+
+- **Envie d'une pierre de plus ? → OUI.** Le juge du Proto 1 est passé.
+- La cause du NON était bien la bonne : c'était l'absence d'arbitrage. Les
+  commandes l'ont réparée.
+- ⚠️ **Restriction honnête** : la seconde question du juge — *le frisson du
+  dernier coup est-il là ?* — n'a jamais été confirmée explicitement. Elle est
+  dans le modèle (mesurée), pas dans un retour de partie.
+
+### Ce que le OUI a immédiatement révélé
+
+Les quatre commandes avaient des cotes **fixes**. Une fois les quatre apprises,
+on sait où la pierre s'arrête sans avoir à la lire : la découverte retombe en
+récitation. Le même défaut que la redondance, un cran plus loin.
+
+Corrigé : **chaque commande donne désormais une plage, pas une cote.** Deux
+pierres de parement ne font jamais la même taille. Il faut lire la matière et le
+chiffre sous l'outil à chaque fois — impossible de savoir d'avance où s'arrêter.
+
+- Le bloc de carrière suit la pierre (toujours 4 rangs de gangue par face), donc
+  une petite commande reste un petit chantier.
+- **L'échelle à l'écran est fixe** : une petite pierre se voit petite. C'est une
+  information, pas un détail — on jauge le travail d'un coup d'œil.
+- La commande annonce un **calibre** (« petite », « moyenne », « forte »), comme
+  un vrai bon de commande. De quoi anticiper l'effort sans connaître la cote.
+- Les tableaux sont dimensionnés au plus grand bloc possible avec des pas
+  d'indexation fixes : la taille change sans réallouer quoi que ce soit.
+
+**Diagonale toujours 4/4** avec des cotes tirées au sort, sur des temps allant
+de 58 s à 153 s selon la commande et le calibre.
+
+### Un bug attrapé par le rendu, pas par les chiffres
+
+Le garde-fou de carrière (« rien sous le 3e rang à nu au départ ») remettait
+`solid = 1` sur **tout le tableau**, y compris hors du bloc actif — où `gang`
+vaut 0 comme pour la pierre. Le bloc entier repartait donc en « dernier rang » :
+tout ambre, taille fausse.
+
+Les jauges n'y voyaient rien (ces cubes fantômes comptaient pour zéro dans le
+budget) et la matrice restait à 4/4. **Seul le rendu l'a montré.** À retenir :
+sur ce proto, l'image est un test au même titre que les nombres.
+
+---
+
 ## Partie du 29/08 — trois bugs trouvés par la capture d'écran
 
 > « Bizarre le score final. »
@@ -421,7 +468,7 @@ c'est la même question qu'avant — **envie d'une pierre de plus ?**
 
 ---
 
-## VERDICT — rendu le 29/08/2026
+## Verdict n°1 — 29/08/2026 : NON
 
 > « Il y a un aspect redondant. À ta question "ai-je envie de tailler une
 > nouvelle pierre" : **non**. »
@@ -477,6 +524,6 @@ plutôt qu'au geste.
 pour ne pas entendre un NON. Il ne doit pas servir à passer outre le protocole.
 Il doit servir à **choisir le bon test suivant** — voir la décision ci-dessous.
 
-- Décision : passer au Proto 2 ? → **EN ATTENTE** — le Proto 1 a été réparé
-  (voir « Réparation du NON » ci-dessus) et doit être rejugé.
+- Décision : passer au Proto 2 ? → **NON à l'époque.** Réparé depuis (voir la
+  section « Réparation du NON »), puis rejugé — voir le verdict n°2 en haut.
 - Notes libres :
