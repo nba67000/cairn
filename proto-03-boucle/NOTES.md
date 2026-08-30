@@ -94,61 +94,28 @@ pour un humain qu'on ne connaîtra jamais ?
 
 ---
 
-## Ce qui a été construit — et un écart que j'ai commis
+## VERDICT étape A — validée ✅
 
-> ⚠️ **J'ai construit l'étape B avant d'avoir lu ce brief.** Tu me l'as déposé
-> pendant que je codais, après m'avoir demandé oralement « le passage de la
-> pierre joueur A à joueur B ». J'avais donc sauté l'étape A, et fait une
-> étape B **nominative** où les deux joueurs se choisissent — alors que ton
-> brief la veut **anonyme, matching non choisi**. Corrigé en partie ; ce qui
-> reste à trancher est en bas.
+> « Proto 3 · Étape A : validée (recevoir une pierre oubliée garde du sel ;
+> déposer "pour un autre" change le soin) » — relevé dans le brief de l'étape B.
 
-### `etape-a-pot.html` — la boucle solo-différée (conforme au brief)
+Les deux questions de l'étape A répondent oui. On monte à l'étape B.
 
-Aucun multijoueur, aucun réseau, aucun compte. Un **pot** gardé dans le
-navigateur (`localStorage`, autorisé ici puisqu'on ouvre un fichier local).
+## `etape-a-pot.html` — ce qui a été construit
 
-- On **commence** une pierre, on taille ce qu'on veut, on la **dépose**.
+Aucun multijoueur, aucun réseau. Un **pot** gardé dans le navigateur.
+
+- On commence une pierre, on taille, on la **dépose**.
 - Le pot ne resert **jamais** une pierre déposée pendant la même ouverture de
   page : il faut fermer et revenir. Le délai fait l'oubli.
-- On **ne choisit pas** ce qu'on reçoit : le pot tire au sort.
-- Le pot est **anonyme par construction** — il ne transporte aucune marque. Le
-  panneau dit seulement « une main avant toi — 34 % ».
+- On **ne choisit pas** ce qu'on reçoit : tirage au sort.
+- **Anonyme par construction** — voir plus bas, l'anonymat n'est pas une
+  politesse, c'est une propriété du format.
 - Une pierre n'est servie **qu'une fois**.
 
 Vérifié sur deux ouvertures simulées : dépôt, refus de se resservir soi-même le
-jour même, puis service à la session suivante, pierre **identique au cube près**,
-sans marque, et retirée du pot.
-
-### `etape-b-relais.html` — deux vrais joueurs (à revoir)
-
-Fait avant le brief. Ce qui est bon : la pierre voyage dans un code d'environ
-1 700 caractères, chaque cube retient quelle main l'a touché, la part de chaque
-main est affichée, et celui qui reçoit reprend exactement où l'autre s'est
-arrêté. L'aller-retour A → B → A a révélé deux défauts, corrigés : la jauge
-repartait de zéro à la réception, et la main du premier disparaissait dès que le
-second repassait partout.
-
-**Ce qui n'est pas conforme à ton brief, et qu'il faut trancher :**
-
-1. **Nominatif au lieu d'anonyme.** J'ai mis une *marque de tâcheron* qui voyage
-   avec la pierre. Ton brief d'étape B dit « anonyme, on ne sait pas qui a fait
-   quoi ». Mais le `DESIGN.md` §2 dit l'inverse : « chaque pierre est datée,
-   **signée d'une main** (marque de tâcheron) ». **Tes deux documents se
-   contredisent.**
-   → Ma proposition, si tu la valides : **anonyme au moment de recevoir**
-   (on ne sait pas de qui vient la pierre, on ne l'a pas choisie), **signée dans
-   l'archive** (une fois la pierre finie, on peut lire les mains qui l'ont
-   faite). Ça honore les deux : le lien est à l'inconnu, la mémoire est nominale.
-2. **On choisit son partenaire.** Le relais par code suppose qu'on s'envoie le
-   code, donc qu'on se connaît. Ton brief veut un *pot partagé* et un matching
-   non choisi. Pour y arriver sans serveur, la piste la plus simple reste le pot
-   commun — mais partagé, ce qui demande un backend minimal (gist, pastebin, un
-   petit Node sur le réseau local), ce que ton brief autorise explicitement.
-
-**Donc l'étape B est à refaire une fois l'étape A jugée**, et à refaire *après*
-avoir tranché le point 1. Je ne l'ai pas fait tout seul : c'est une décision de
-design, pas un détail d'implémentation.
+jour même, service à la session suivante, pierre **identique au cube près**, et
+retirée du pot.
 
 ---
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cairn — Proto 3 : le relais</title>
+<title>Cairn — Proto 3 · étape B1 : la pierre d'un vrai autre</title>
 <style>
   :root{
     --bg:#14120f; --panel:#1c1916; --line:#2e2923; --ink:#d9d0c0; --dim:#8b8073;
@@ -99,43 +99,40 @@
 <div id="stage">
   <canvas id="cv"></canvas>
   <div id="choix"><div class="card" style="width:620px">
-    <h2 style="letter-spacing:.16em;margin-bottom:6px">Proto 3 — le relais</h2>
+    <h2 style="letter-spacing:.16em;margin-bottom:6px">Proto 3 · étape B1 — la pierre d'un vrai autre</h2>
     <p style="color:#c9b795;font-size:14px;font-style:italic;margin:0 0 22px">
-      Une pierre qui passe de main en main. Tu tailles ce que tu veux,<br>
-      tu la passes, quelqu'un d'autre continue. Elle peut te revenir.</p>
-
-    <label style="display:block;font-size:11px;color:var(--dim);text-align:left;margin-bottom:5px">
-      Ta marque de tâcheron — c'est le seul mot qui voyagera</label>
-    <input id="marque" maxlength="24" placeholder="Nico" style="width:100%;padding:9px 11px;
-      background:#151310;border:1px solid var(--line);border-radius:3px;color:#e8dcc4;
-      font:inherit;font-size:14px;margin-bottom:20px">
+      Quelqu'un a commencé une pierre à sa façon, pas à la tienne.<br>
+      Tu ne sauras pas qui. Tu la finis, ou tu la relances.</p>
 
     <div style="display:flex;gap:12px">
-      <button class="carte" id="neuf"><b>Prendre un bloc neuf</b>
-        <span>Tu ouvres la chaîne. Tu tailles, tu passes, quelqu'un reprend.</span></button>
-      <button class="carte" id="recevoir"><b>Recevoir une pierre</b>
-        <span>Quelqu'un t'a envoyé un code. Colle-le : tu reprends là où il s'est arrêté.</span></button>
+      <button class="carte" id="neuf"><b>Commencer une pierre</b>
+        <span>Un bloc neuf. Tu tailles ce que tu veux, puis tu l'exportes pour quelqu'un d'autre.</span></button>
+      <button class="carte" id="importer"><b>Importer une pierre</b>
+        <span>On t'a envoyé un texte. Colle-le : tu reprends une pierre taillée par une vraie autre personne.</span></button>
     </div>
 
-    <div id="zoneRecevoir" style="display:none;margin-top:16px">
-      <textarea id="codeRecu" placeholder="Colle ici le code reçu" style="width:100%;height:90px;
+    <div id="zoneImport" style="display:none;margin-top:16px">
+      <textarea id="blobEntrant" placeholder="Colle ici le texte reçu" style="width:100%;height:90px;
         background:#151310;border:1px solid var(--line);border-radius:3px;color:#8b8073;
         font:11px ui-monospace,Consolas,monospace;padding:9px;resize:none"></textarea>
-      <button class="big" id="ouvrir" style="margin-top:10px">Reprendre cette pierre</button>
+      <button class="big" id="ouvrir" style="margin-top:10px">Prendre cette pierre</button>
       <p id="erreur" style="color:var(--bad);font-size:11.5px;margin:9px 0 0;min-height:16px"></p>
     </div>
+    <p style="color:#5f574c;font-size:11px;margin-top:16px">
+      Le texte ne contient que la pierre : sa matière, ses cotes, et quelles
+      mains ont touché quels cubes. Aucun nom, aucun identifiant.</p>
   </div></div>
 
   <div id="passe"><div class="card" style="width:560px">
     <h2 style="letter-spacing:.16em;margin-bottom:6px">La pierre part</h2>
     <p style="color:#c9b795;font-size:14px;font-style:italic;margin:0 0 18px" id="passeDit"></p>
-    <textarea id="codeSortant" readonly style="width:100%;height:120px;background:#151310;
+    <textarea id="blobSortant" readonly style="width:100%;height:120px;background:#151310;
       border:1px solid var(--line);border-radius:3px;color:#8b8073;
       font:11px ui-monospace,Consolas,monospace;padding:9px;resize:none"></textarea>
-    <button class="big" id="copierCode" style="margin-top:12px">Copier le code</button>
+    <button class="big" id="copierBlob" style="margin-top:12px">Copier</button>
     <p style="color:#5f574c;font-size:11px;margin-top:14px">
-      Envoie-le par le canal que tu veux. Celui qui le collera reprendra ta pierre
-      exactement où tu l'as laissée — et verra ce que tu as touché.</p>
+      Envoie-le. Celui qui le collera reprendra ta pierre là où tu l'as laissée —
+      et verra ce que tu as touché, sans savoir que c'était toi.</p>
     <button id="retour" style="margin-top:16px;background:none;border:none;color:#8b8073;
       font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline">revenir à la pierre</button>
   </div></div>
@@ -220,7 +217,7 @@
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:10px">
       <span>Coups de maillet</span><span id="coups" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">0</span>
     </div>
-    <button class="big" id="passer">Passer la pierre</button>
+    <button class="big" id="passer">Exporter la pierre</button>
     <button class="big" id="finish" style="margin-top:8px;background:#232019;border-color:var(--line)">Pierre finie</button>
   </div>
 
@@ -231,19 +228,24 @@
 <script>
 "use strict";
 /* ------------------------------------------------------------------ *
- *  Cairn — Proto 3 : le relais  —  la pierre passe de main en main
+ *  Cairn — Proto 3 · ÉTAPE B1 : la pierre d'un vrai autre
  *
- *  Question testée : quand l'autre est une VRAIE personne, est-ce que ça change
- *  quelque chose ? Le Proto 2 a prouvé qu'hériter d'une pierre imparfaite est
- *  prenant, mais l'inconnu y était un bot. C'est le seul vrai risque restant.
+ *  L'étape A n'avait qu'un humain : l'oubli IMITAIT l'inconnu. Ici il y en a
+ *  deux. Question : le sel du Proto 2 survit-il quand c'est une vraie personne
+ *  qui a taillé la pierre qu'on reçoit ?
  *
- *  Pas de serveur, un seul fichier : la pierre voyage dans un CODE à copier-
- *  coller, passé par le canal qu'on veut. Asynchrone, à distance, et fidèle au
- *  DESIGN §6 — aucune messagerie libre, seulement un objet défini par le jeu.
- *  Le seul mot qui voyage est la marque de tâcheron.
+ *  Pas de backend : le pot partagé, c'est deux humains et un presse-papier. On
+ *  exporte un texte, on l'envoie par n'importe quel canal HORS du jeu, l'autre
+ *  l'importe.
  *
- *  Moteur de taille copié du Proto 2. UNE note pour la pierre, jamais par
- *  joueur : le DESIGN §1 est coopératif, sans compétition.
+ *  TROIS INVARIANTS, non négociables (brief étape B) :
+ *   1. anonyme       le blob ne contient aucun nom, aucun pseudo, aucun id.
+ *                    Structurellement : il transporte un COMPTE de mains.
+ *   2. non choisi    rien dans le jeu ne permet de désigner qui que ce soit.
+ *   3. pas d'adresse le seul lien entre deux joueurs est la pierre elle-même.
+ *
+ *  Test de conformité : si un joueur peut désigner un autre joueur — le
+ *  choisir, le nommer, lui parler — c'est hors-cadre. Rien ici ne le permet.
  * ------------------------------------------------------------------ */
 
 /* ---------- la commande ---------- *
@@ -273,8 +275,8 @@ let cmd = COMMANDE;
  *  Chaque cube retient QUELLE main l'a touché en dernier : 0 = bloc intact,
  *  puis 1..n dans l'ordre où les mains sont entrées dans la chaîne. C'est
  *  l'archive-mémoire du DESIGN §2, à l'échelle d'une pierre.                */
-let mains = [];                          // marques de tâcheron, dans l'ordre
-let moi = 1;                             // ma place dans la chaîne
+let nbMains = 1;                         // combien de mains ont touché la pierre
+let moi = 1;                             // la mienne, dans l'ordre — un NUMÉRO, jamais un nom
 let cotesNominales = [7, 7, 9];
 let reclasse = false;
 
@@ -870,11 +872,11 @@ function compter() {
 }
 
 // Un bloc neuf : je suis la première main de la chaîne.
-function blocNeuf(marque) {
+function blocNeuf() {
   cotesNominales = COMMANDE.cotes.slice();
   poserCommande(COMMANDE, cotesNominales);
   quarry(); wear.fill(0); wearAx.fill(0); main.fill(0);
-  mains = [marque]; moi = 1;
+  nbMains = 1; moi = 1;
   reclasse = false;
   coups = 0; contact = 0; chips.length = 0;
   majTops(); compter();
@@ -918,11 +920,7 @@ function encoderPierre() {
   p8(KX); p8(KY); p8(KZ); p8(W); p8(D); p8(H);
   p8(cotesNominales[0]); p8(cotesNominales[1]); p8(cotesNominales[2]);
   p16(coups); p16(Math.round(contact)); p16(Math.round(REF0));
-  p8(mains.length);
-  for (const m of mains) {
-    const t = m.slice(0, 24); p8(t.length);
-    for (let k = 0; k < t.length; k++) p8(t.charCodeAt(k));
-  }
+  p8(nbMains);                     // un compte, pas des noms : rien à transporter
   // un octet par cube (matière + main + usure), puis compression par plages :
   // une pierre est faite de longues zones identiques, ça descend très bas
   let val = -1, n = 0;
@@ -946,12 +944,7 @@ function decoderPierre(txt) {
   const kx = g8(), ky = g8(), kz = g8(), w = g8(), d = g8(), h = g8();
   const nom = [g8(), g8(), g8()];
   const cps = g16(), tps = g16(), ref = g16();
-  const nm = g8(), noms = [];
-  for (let m = 0; m < nm; m++) {
-    const L = g8(); let t = "";
-    for (let c = 0; c < L; c++) t += String.fromCharCode(g8());
-    noms.push(t);
-  }
+  const nm = g8();
   if (w > WMAX || d > DMAX || h > HMAX || !kx || !nm) throw new Error("Pierre illisible.");
 
   W = w; D = d; H = h; LIM[0] = W; LIM[1] = D; LIM[2] = H;
@@ -971,7 +964,7 @@ function decoderPierre(txt) {
     wear[i] = ((val >> 4) & 15) / 15;
     wearAx[i] = 2;
   }
-  mains = noms; coups = cps; contact = tps;
+  nbMains = nm; coups = cps; contact = tps;
   chips.length = 0;
   majTops(); jauger(); compter();
   // Le travail déjà fourni compte : la jauge doit continuer là où l'autre l'a
@@ -980,13 +973,9 @@ function decoderPierre(txt) {
 }
 let val = 0;                                          // état de la lecture par plages
 
-// Je reprends la pierre : si ma marque est déjà dans la chaîne, je reprends ma
-// place ; sinon j'entre dedans. La chaîne se lit comme les anneaux d'un arbre.
-function entrerDansLaChaine(marque) {
-  const deja = mains.indexOf(marque);
-  if (deja >= 0) moi = deja + 1;
-  else { mains.push(marque); moi = mains.length; }
-}
+// J'entre dans la chaîne : toujours une main de plus, jamais une main reconnue.
+// On ne doit pouvoir se retrouver soi-même, ni retrouver quiconque.
+function entrerDansLaChaine() { nbMains++; moi = nbMains; }
 
 /* ---------- les jauges ---------- */
 function depths() {
@@ -1105,7 +1094,7 @@ const GEL = { mat: document.getElementById("gMat"), tra: document.getElementById
  *  pierre, et copiable d'un bouton — de quoi diagnostiquer sans capture d'écran. */
 let journal = null;
 function ouvrirJournal() {
-  journal = { mains: mains.slice(), moi, reclasse, cotesNominales: cotesNominales.join("x"),
+  journal = { nbMains, moi, reclasse, cotesNominales: cotesNominales.join("x"),
               commande: cmd.nom, cotes: [KX, KY, KZ].join("x"), vues: cmd.vues.slice(),
               aOter: Math.round(REF0), alloue: Math.round(refTemps()),
               secondesParOutil: [0, 0, 0], coupsParOutil: [0, 0, 0], courbe: [], fin: null };
@@ -1290,7 +1279,7 @@ function noter() {
   // Le rattrapage se paie — et la pierre qui a porté plusieurs mains vaut plus
   // que la pierre d'un seul (DESIGN §2 : le château est l'archive des gestes).
   // La note est celle de LA PIERRE, jamais d'un joueur : pas de compétition.
-  const prime = 1 + (reclasse ? 0.18 : 0) + Math.max(0, mains.length - 1) * 0.05;
+  const prime = 1 + (reclasse ? 0.18 : 0) + Math.max(0, nbMains - 1) * 0.05;
   const score = clamp(brut * prime, 0, 140);
   return { g, eco, score, brut, prime, parts, ref };
 }
@@ -1312,7 +1301,7 @@ document.getElementById("finish").addEventListener("click", () => {
   document.getElementById("prime").innerHTML =
     `travail brut ${Math.round(r.brut)}`
     + (r.prime > 1 ? ` · <b style="color:#c9b795">×${r.prime.toFixed(2).replace(".", ",")}</b>` : "")
-    + ` · la pierre est de <b style="color:#c3cfd6">${mains.filter(Boolean).join(", ")}</b>`;
+    + ` · <b style="color:#c3cfd6">${nbMains} main${nbMains > 1 ? "s" : ""}</b> l'ont faite`;
   document.getElementById("end").classList.add("on");
 });
 
@@ -1338,35 +1327,22 @@ function verdict(g, parts, score) {
   return "Correcte. Rien de brillant, rien à jeter.";
 }
 
-/* ---------- la pierre, d'une main à l'autre ---------- */
+/* ---------- le presse-papier pour tout pot ---------- *
+ *  Deux humains et un canal quelconque. Le blob ne transporte que la pierre :
+ *  il n'a structurellement pas de place où loger une identité.               */
 const EL_CMD_DIT = document.getElementById("cmdDit");
 const NOM_FACE = ["la face droite", "la face gauche", "le dessus"];
 const $ = id => document.getElementById(id);
 
-function partDesMains() {
-  const part = new Array(mains.length + 1).fill(0);
-  let total = 0;
-  for (let i = 0; i < NMAX; i++) {
-    if (!solid[i]) continue;
-    const x = XS[i], y = YS[i], z = ZS[i];
-    if (x + 1 < W && solid[i + 1] && y + 1 < D && solid[i + WMAX] && z + 1 < H && solid[i + WMAX * DMAX]) continue;
-    part[main[i]] = (part[main[i]] || 0) + 1; total++;
-  }
-  return { part, total: Math.max(1, total) };
-}
-
 function afficherChaine() {
   const { part, total } = partDesMains();
-  $("chaine").innerHTML = mains.map((m, k) => {
-    const pc = Math.round(100 * (part[k + 1] || 0) / total);
-    return `<span class="lamain${k + 1 === moi ? " moi" : ""}">${k + 1 === moi ? "▸ " : ""}` +
-           `${m || "?"} <b style="font-weight:600;color:#c9b795">${pc}%</b></span>`;
-  }).join("");
+  const autres = Math.round(100 * (total - (part[moi] || 0)) / total);
+  $("chaine").innerHTML =
+    (autres > 0 ? `<span class="lamain">une main avant toi <b style="font-weight:600;color:#c9b795">${autres}%</b></span>` : "")
+    + `<span class="lamain moi">▸ toi <b style="font-weight:600;color:#c9b795">${100 - autres}%</b></span>`;
   EL_CMD_DIT.innerHTML = COMMANDE.dit
     + ` <b style="color:#c3cfd6">À dresser : ${cmd.vues.map(f => NOM_FACE[f]).join(" et ")}.</b>`
-    + (mains.length > 1
-      ? ` <b style="color:#c9b795">Ce qui est mat n'est pas de toi.</b>`
-      : "")
+    + (autres > 0 ? ` <b style="color:#c9b795">Ce qui est mat n'est pas de toi.</b>` : "")
     + (reclasse
       ? ` <b style="color:#e8b25f">La cote annoncée (${cotesNominales.join("×")}) n'est plus tenable :
           au mieux ${[KX, KY, KZ].join("×")}. Coupe le reste à cette mesure-là.</b>`
@@ -1387,43 +1363,40 @@ function auTravail() {
   cadrer(); paintPick(); needDraw = true;
 }
 
-const maMarque = () => ($("marque").value || "").trim().slice(0, 24) || "sans marque";
-
-$("neuf").addEventListener("click", () => { blocNeuf(maMarque()); auTravail(); });
-$("recevoir").addEventListener("click", () => {
-  $("zoneRecevoir").style.display = "block"; $("codeRecu").focus();
+$("neuf").addEventListener("click", () => { blocNeuf(); auTravail(); });
+$("importer").addEventListener("click", () => {
+  $("zoneImport").style.display = "block"; $("blobEntrant").focus();
 });
 $("ouvrir").addEventListener("click", () => {
   try {
-    decoderPierre($("codeRecu").value);
-    entrerDansLaChaine(maMarque());
+    decoderPierre($("blobEntrant").value);
+    entrerDansLaChaine();
     $("erreur").textContent = "";
     auTravail();
   } catch (e) { $("erreur").textContent = e.message; }
 });
 
-/* passer la pierre : on fige, on encode, on montre le code */
+/* exporter : la pierre quitte les mains */
 $("passer").addEventListener("click", () => {
   working = false;
   const g = gauges();
-  $("codeSortant").value = encoderPierre();
+  $("blobSortant").value = encoderPierre();
   $("passeDit").textContent = reclasse
-    ? `Tu la passes déclassée à ${[KX, KY, KZ].join("×")} — celui qui suit devra faire avec.`
-    : `Tu la passes à ${g.tra.toFixed(0)} % de la cote. Ce que tu laisses, un autre le trouvera.`;
+    ? `Tu la passes déclassée à ${[KX, KY, KZ].join("×")} — celui qui la prendra devra faire avec.`
+    : `Tu la passes à ${g.tra.toFixed(0)} % de la cote. Ce que tu laisses, quelqu'un le trouvera.`;
   $("passe").classList.add("on");
 });
 $("retour").addEventListener("click", () => { $("passe").classList.remove("on"); needDraw = true; });
-$("copierCode").addEventListener("click", e => {
-  const t = $("codeSortant").value;
+$("copierBlob").addEventListener("click", e => {
+  const t = $("blobSortant").value;
   navigator.clipboard.writeText(t).then(
-    () => { e.target.textContent = "code copié — envoie-le"; },
-    () => { $("codeSortant").select(); e.target.textContent = "sélectionné : Ctrl+C"; });
+    () => { e.target.textContent = "copié — envoie-le"; },
+    () => { $("blobSortant").select(); e.target.textContent = "sélectionné : Ctrl+C"; });
 });
-
 $("again").addEventListener("click", () => {
   $("end").classList.remove("on");
   $("choix").classList.remove("off");
-  $("zoneRecevoir").style.display = "none";
+  $("zoneImport").style.display = "none";
 });
 $("copie").addEventListener("click", e => {
   const t = JSON.stringify(journal, null, 1);
@@ -1433,7 +1406,7 @@ $("copie").addEventListener("click", e => {
 });
 
 /* ---------- go ---------- */
-blocNeuf("");                            // une pierre en fond, le temps de choisir
+blocNeuf();                              // une pierre en fond, le temps de choisir
 resize();
 requestAnimationFrame(frame);
 </script>

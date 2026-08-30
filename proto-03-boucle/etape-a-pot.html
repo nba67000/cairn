@@ -258,8 +258,8 @@ let cmd = COMMANDE;
  *  Chaque cube retient QUELLE main l'a touché en dernier : 0 = bloc intact,
  *  puis 1..n dans l'ordre où les mains sont entrées dans la chaîne. C'est
  *  l'archive-mémoire du DESIGN §2, à l'échelle d'une pierre.                */
-let mains = [];                          // marques de tâcheron, dans l'ordre
-let moi = 1;                             // ma place dans la chaîne
+let nbMains = 1;                         // combien de mains ont touché la pierre
+let moi = 1;                             // la mienne, dans l'ordre — un NUMÉRO, jamais un nom
 let cotesNominales = [7, 7, 9];
 let reclasse = false;
 
@@ -855,11 +855,11 @@ function compter() {
 }
 
 // Un bloc neuf : je suis la première main de la chaîne.
-function blocNeuf(marque) {
+function blocNeuf() {
   cotesNominales = COMMANDE.cotes.slice();
   poserCommande(COMMANDE, cotesNominales);
   quarry(); wear.fill(0); wearAx.fill(0); main.fill(0);
-  mains = [marque]; moi = 1;
+  nbMains = 1; moi = 1;
   reclasse = false;
   coups = 0; contact = 0; chips.length = 0;
   majTops(); compter();
@@ -903,11 +903,7 @@ function encoderPierre() {
   p8(KX); p8(KY); p8(KZ); p8(W); p8(D); p8(H);
   p8(cotesNominales[0]); p8(cotesNominales[1]); p8(cotesNominales[2]);
   p16(coups); p16(Math.round(contact)); p16(Math.round(REF0));
-  p8(mains.length);
-  for (const m of mains) {
-    const t = m.slice(0, 24); p8(t.length);
-    for (let k = 0; k < t.length; k++) p8(t.charCodeAt(k));
-  }
+  p8(nbMains);                     // un compte, pas des noms : rien à transporter
   // un octet par cube (matière + main + usure), puis compression par plages :
   // une pierre est faite de longues zones identiques, ça descend très bas
   let val = -1, n = 0;
@@ -931,12 +927,7 @@ function decoderPierre(txt) {
   const kx = g8(), ky = g8(), kz = g8(), w = g8(), d = g8(), h = g8();
   const nom = [g8(), g8(), g8()];
   const cps = g16(), tps = g16(), ref = g16();
-  const nm = g8(), noms = [];
-  for (let m = 0; m < nm; m++) {
-    const L = g8(); let t = "";
-    for (let c = 0; c < L; c++) t += String.fromCharCode(g8());
-    noms.push(t);
-  }
+  const nm = g8();
   if (w > WMAX || d > DMAX || h > HMAX || !kx || !nm) throw new Error("Pierre illisible.");
 
   W = w; D = d; H = h; LIM[0] = W; LIM[1] = D; LIM[2] = H;
@@ -956,7 +947,7 @@ function decoderPierre(txt) {
     wear[i] = ((val >> 4) & 15) / 15;
     wearAx[i] = 2;
   }
-  mains = noms; coups = cps; contact = tps;
+  nbMains = nm; coups = cps; contact = tps;
   chips.length = 0;
   majTops(); jauger(); compter();
   // Le travail déjà fourni compte : la jauge doit continuer là où l'autre l'a
@@ -965,13 +956,9 @@ function decoderPierre(txt) {
 }
 let val = 0;                                          // état de la lecture par plages
 
-// Je reprends la pierre : si ma marque est déjà dans la chaîne, je reprends ma
-// place ; sinon j'entre dedans. La chaîne se lit comme les anneaux d'un arbre.
-function entrerDansLaChaine(marque) {
-  const deja = mains.indexOf(marque);
-  if (deja >= 0) moi = deja + 1;
-  else { mains.push(marque); moi = mains.length; }
-}
+// J'entre dans la chaîne : toujours une main de plus, jamais une main reconnue.
+// On ne doit pouvoir se retrouver soi-même, ni retrouver quiconque.
+function entrerDansLaChaine() { nbMains++; moi = nbMains; }
 
 /* ---------- les jauges ---------- */
 function depths() {
@@ -1090,7 +1077,7 @@ const GEL = { mat: document.getElementById("gMat"), tra: document.getElementById
  *  pierre, et copiable d'un bouton — de quoi diagnostiquer sans capture d'écran. */
 let journal = null;
 function ouvrirJournal() {
-  journal = { mains: mains.slice(), moi, reclasse, cotesNominales: cotesNominales.join("x"),
+  journal = { nbMains, moi, reclasse, cotesNominales: cotesNominales.join("x"),
               commande: cmd.nom, cotes: [KX, KY, KZ].join("x"), vues: cmd.vues.slice(),
               aOter: Math.round(REF0), alloue: Math.round(refTemps()),
               secondesParOutil: [0, 0, 0], coupsParOutil: [0, 0, 0], courbe: [], fin: null };
@@ -1275,7 +1262,7 @@ function noter() {
   // Le rattrapage se paie — et la pierre qui a porté plusieurs mains vaut plus
   // que la pierre d'un seul (DESIGN §2 : le château est l'archive des gestes).
   // La note est celle de LA PIERRE, jamais d'un joueur : pas de compétition.
-  const prime = 1 + (reclasse ? 0.18 : 0) + Math.max(0, mains.length - 1) * 0.05;
+  const prime = 1 + (reclasse ? 0.18 : 0) + Math.max(0, nbMains - 1) * 0.05;
   const score = clamp(brut * prime, 0, 140);
   return { g, eco, score, brut, prime, parts, ref };
 }
@@ -1297,7 +1284,7 @@ document.getElementById("finish").addEventListener("click", () => {
   document.getElementById("prime").innerHTML =
     `travail brut ${Math.round(r.brut)}`
     + (r.prime > 1 ? ` · <b style="color:#c9b795">×${r.prime.toFixed(2).replace(".", ",")}</b>` : "")
-    + ` · la pierre est de <b style="color:#c3cfd6">${mains.filter(Boolean).join(", ")}</b>`;
+    + ` · <b style="color:#c3cfd6">${nbMains} main${nbMains > 1 ? "s" : ""}</b> l'ont faite`;
   document.getElementById("end").classList.add("on");
 });
 
@@ -1346,7 +1333,7 @@ const $ = id => document.getElementById(id);
 // la part de chaque main sur la surface visible — le repli robuste : même si
 // on repasse partout et qu'on efface la texture de l'autre, la part reste vraie
 function partDesMains() {
-  const part = new Array(mains.length + 2).fill(0);
+  const part = new Array(nbMains + 2).fill(0);
   let total = 0;
   for (let i = 0; i < NMAX; i++) {
     if (!solid[i]) continue;
@@ -1397,7 +1384,7 @@ function majAccueil() {
 }
 
 $("neuf").addEventListener("click", () => {
-  blocNeuf("");                          // pas de marque : le pot est anonyme
+  blocNeuf();                            // le pot est anonyme par construction
   auTravail();
 });
 
@@ -1407,7 +1394,7 @@ $("prendre").addEventListener("click", () => {
   const tire = dispo[(Math.random() * dispo.length) | 0];   // on ne choisit pas
   try {
     decoderPierre(tire.code);
-    entrerDansLaChaine("");
+    entrerDansLaChaine();
     ecrirePot(lirePot().filter(x => x.code !== tire.code));  // on ne la sert qu'une fois
     $("erreur").textContent = "";
     auTravail();
@@ -1444,7 +1431,7 @@ $("copie").addEventListener("click", e => {
 });
 
 /* ---------- go ---------- */
-blocNeuf("");                            // une pierre en fond, le temps de choisir
+blocNeuf();                              // une pierre en fond, le temps de choisir
 majAccueil();
 resize();
 requestAnimationFrame(frame);
