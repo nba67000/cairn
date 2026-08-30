@@ -1,0 +1,113 @@
+Contexte : je développe "Cairn", un jeu coopératif asynchrone de taille de
+pierre. Lis d'abord DESIGN.md (surtout la section "3bis. CORRECTION MAJEURE")
+et proto-04-contraintes/NOTES.md à la racine du repo — ils contiennent la
+vision et le brief complet. Respecte-les.
+
+Crée le fichier proto-04-contraintes/index.html : un prototype web jouable,
+UN SEUL fichier HTML, canvas 2D pur, AUCUN framework, AUCUN build, AUCUN
+moteur 3D.
+
+OBJECTIF DU PROTO
+Tester un scoring "par contraintes" (plusieurs solutions valables) au lieu d'un
+scoring "par cible" (une seule bonne réponse). C'est la correction centrale du
+projet : il ne doit PAS y avoir de bloc-cible à copier.
+
+RENDU
+- La pierre est une grille de cubes (commence en 10x10x10), dessinée en
+  PROJECTION ISOMÉTRIQUE 2D façon Age of Empires : losanges empilés, vue fixe
+  à 45°, AUCUNE rotation de caméra.
+- Tailler = cliquer pour retirer des cubes. Gravé : un cube retiré ne revient
+  jamais.
+
+OUTILS (sélectionnables) — LE MÉCANISME D'ENLÈVEMENT EST CRUCIAL
+Les outils ne diffèrent pas seulement par LA QUANTITÉ de cubes retirés, mais
+par la MANIÈRE de les retirer. Point clé : un outil ARASE — il attaque ce qui
+dépasse et épargne ce qui est en creux, comme un vrai ciseau sur une surface
+bosselée.
+
+Modèle "colonnes" : traite la pierre comme des colonnes verticales de cubes,
+une par position (x,y) au sol, chacune de hauteur variable. Une surface
+bosselée = des colonnes de hauteurs différentes (bosses = hautes, creux = bas).
+
+Règle d'arasement (à appliquer à chaque coup, dans le RAYON de l'outil autour
+du clic) : NE PAS retirer une couche uniforme sur toutes les colonnes. Retirer
+la matière PROPORTIONNELLEMENT à la hauteur de chaque colonne au-dessus du point
+le plus bas de la zone frappée.
+- Une colonne qui dépasse beaucoup (grosse bosse) perd beaucoup de cubes.
+- Une colonne qui dépasse peu perd peu.
+- Une colonne déjà au niveau du creux local n'est PAS touchée.
+Résultat : taper sur une bosse l'arase progressivement ; plus on tape, plus la
+surface se lisse. La planéité est GAGNÉE par le travail, pas obtenue d'un coup.
+(C'est la version "usure proportionnelle", à préférer à un simple seuil-
+guillotine qui serait trop net.)
+
+Les 3 outils se distinguent alors par RAYON + INTENSITÉ :
+- Chasse : grand rayon, arasement grossier et brutal (peut laisser une surface
+  irrégulière, voire créer de nouvelles bosses). Pour dégrossir.
+- Pointe : rayon moyen, arasement moyen. Pour approcher.
+- Ciseau : petit rayon, arasement fin et contrôlé. C'est lui qui FINIT le
+  lissage d'une face.
+- Force du coup : un curseur (léger → fort) qui multiplie l'intensité (combien
+  de hauteur on arase par coup), sans changer le principe proportionnel.
+
+Ce mécanisme d'arasement est aussi ce qui rend la CONTRAINTE DE PLANÉITÉ
+mesurable et cohérente : sans lui, taper enlèverait des cubes uniformément et la
+planéité ne pourrait pas vraiment s'améliorer par le geste. Coder l'arasement
+AVANT de calculer la planéité.
+
+LE SCORING — LE POINT CLÉ (ne pas coder de cible à atteindre)
+La pierre est notée sur une LISTE DE CONTRAINTES mesurables, chacune de 0 à
+100 %. Aucune ne dit "enlève ce cube précis". Implémente ces contraintes pour
+une pierre de mur :
+1. Face du dessous plane : mesure la planéité de la face inférieure (ex.
+   variance des hauteurs de surface sur cette face). Peu importe où est le plan.
+2. Face du dessus plane et parallèle au dessous.
+3. Hauteur dans une fourchette [Hmin..Hmax] : dans la fourchette = 100 % ;
+   sous Hmin = trop taillé (chute, irréversible) ; au-dessus Hmax = pas fini.
+4. Matière portante : nombre de cubes restants ≥ un seuil.
+5. Emboîtement avec la voisine (voir mode chaîne ci-dessous) : la face latérale
+   droite doit épouser le profil d'une pierre voisine ; mesure l'écart entre
+   les deux surfaces. C'est la seule contrainte qui dépend d'une autre pierre.
+
+Score global = teste DEUX modes que je pourrai comparer : (a) moyenne pondérée
+des contraintes, (b) minimum des contraintes (force à toutes les respecter).
+Mets un petit toggle pour basculer entre (a) et (b).
+
+Affiche CHAQUE contrainte séparément (barre + % + couleur vert/rouge qui bouge
+à chaque coup) ET le score global. Le feedback doit être immédiat à chaque clic.
+
+SILHOUETTE-GUIDE (facultative, PAS la réponse notée)
+Un contour indicatif "zone raisonnable", affichable/masquable par un bouton. Le
+score ne s'y réfère JAMAIS. Un joueur qui s'en écarte mais satisfait mieux les
+contraintes doit obtenir un meilleur score.
+
+MODE CHAÎNE (pour tester la "liberté qui se referme")
+- Un bouton "pierre suivante" : la pierre qu'on vient de finir devient la
+  "voisine" de la prochaine, ce qui ACTIVE la contrainte d'emboîtement (5) et
+  restreint donc les solutions valables de la suivante.
+- Objectif observable : les premières pierres sont libres (peu de contraintes),
+  les suivantes de plus en plus contraintes.
+- GARDE-FOU IMPÉRATIF : il doit toujours rester au moins une solution valable.
+  Une pierre ne doit jamais devenir impossible à cause de la précédente. Si tu
+  ne peux pas le garantir, détecte et affiche le cas "plus aucune solution"
+  pour que je vérifie qu'il n'arrive pas en jeu normal.
+- Prévois aussi un moyen de démarrer une pierre depuis un état "voisine tordue
+  mais légitime" (une voisine volontairement de travers, mais valable) pour que
+  je re-teste le duel "tordu vs propre" : composer avec une voisine de travers
+  doit rester jouable et intéressant.
+
+FIN D'UNE PIERRE
+Bouton "Pierre finie" → fige l'état → affiche le score global + une phrase sur
+le point faible (ex. "solide, mais l'emboîtement à droite est juste").
+
+INTERDITS
+Pas de son, pas de menu, pas de niveaux, pas de sauvegarde obligatoire, pas de
+framework, pas de 3D, pas de rotation, pas de graphismes léchés. C'est un
+instrument de test, la priorité absolue est le RESSENTI du geste et la lisibilité
+des contraintes, pas la beauté.
+
+IMPORTANT
+- Commente le code aux endroits clés (calcul de chaque contrainte, activation de
+  l'emboîtement, garde-fou de solvabilité).
+- Un seul fichier, ouvrable directement dans un navigateur.
+- Ne crée aucun autre fichier. Ne modifie pas les autres protos.

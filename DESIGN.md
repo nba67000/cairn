@@ -101,8 +101,13 @@ contraintes avec le moins de matière dépensée).
 ### contraire — c'est ce qui crée l'arbitrage)
 1. **Matière restante** — ne fait QUE descendre. C'est le budget. Chaque coup
    la grignote.
-2. **Proximité du trait** — monte en approchant la cible, **CHUTE brutalement
-   si on dépasse** (trop taillé). Cœur du skill.
+2. **Respect des contraintes** — monte quand la pierre satisfait ses exigences
+   (planéité des faces porteuses, hauteur dans la fourchette, emboîtement avec
+   la voisine…), **CHUTE brutalement si on dépasse** (trop taillé = on crève une
+   contrainte, ex. plus assez de matière, hauteur sous la fourchette). Cœur du
+   skill. ⚠️ NE PAS coder ça comme « proximité d'une cible unique » (voir
+   correction majeure §3bis) : c'est la satisfaction d'un cahier des charges à
+   solutions multiples, pas la ressemblance à un bloc prédéfini.
 3. **Planéité** — monte avec les outils fins, plafonne avec les grossiers.
 4. **Emboîtement avec la voisine** — SEULE jauge qui dépend d'une autre pierre
    déjà posée (donc du travail d'un inconnu). Canal social : transmet
@@ -137,6 +142,68 @@ petits « on fait avec » — légèrement de guingois, et beau *pour ça*.
 > défaut voyage en **s'atténuant**, jamais en s'amplifiant.
 
 ---
+
+## 3bis. CORRECTION MAJEURE — cahier des charges, pas cible unique
+
+> Écart repéré APRÈS les protos 1-2-3 : ils avaient une **silhouette-cible** à
+> atteindre. Or « atteindre un bloc prédéfini » = UNE seule bonne réponse =
+> le schéma-à-copier déjà rejeté, revenu par la porte de l'implémentation.
+> Les protos testaient donc une version DÉGRADÉE du jeu (bon geste, mais jugé à
+> la ressemblance). Ce qui a marché en version dégradée est prometteur, mais le
+> vrai jeu n'a pas encore été testé.
+
+### Le piège du Proto 2 (à savoir)
+Avec cible unique, le tordu battait le propre peut-être juste parce qu'il était
+**plus dur à ramener vers la cible** → on aurait validé « un puzzle de
+correction plus dur est plus fun », PAS la thèse « composer avec le choix d'un
+autre est fun ». Corriger l'écart d'un autre (l'autre = fauteur) ≠ composer avec
+sa proposition (l'autre = partenaire). Il faudra re-tester en version contraintes.
+
+### Le principe : on définit ce que la pierre doit SATISFAIRE, pas sa forme
+Exemple pierre de mur, contraintes mesurables :
+- face du dessous **plane** (repose) — peu importe où est le plan, il en faut un
+- face du dessus **plane et parallèle** (porte la suivante)
+- **hauteur dans une fourchette** [X..Y] — pas une valeur exacte → plusieurs
+  hauteurs valables
+- **assez de matière restante** (porte la charge)
+- **emboîtement avec la voisine** — dépend de ce qu'un AUTRE a posé avant
+
+Aucune de ces règles ne dit « enlève ce cube-là ». Des milliers de blocs
+différents les satisfont → la « multitude de solutions ». Le score = combien de
+contraintes remplies et à quel point, PAS distance à une cible.
+
+### La liberté qui se referme (propriété reine — décision prise)
+La 1re pierre d'un mur a ~mille solutions. En la posant, le joueur **restreint**
+le champ de la suivante. Chaque geste gravé **consomme une part de la liberté**
+du suivant. Le dernier joueur du mur n'a presque plus de choix — sa pierre est
+quasi déterminée par tous les gestes d'avant.
+- Ce n'est PAS un problème d'équité, c'est le **cœur poétique** : la liberté est
+  une ressource commune qui se consomme le long de la chaîne. Premiers = ivresse
+  du champ ouvert ; derniers = virtuosité de la contrainte serrée. Deux plaisirs.
+- **Comble l'angle mort d'anticipation** (§7) : chaque pierre reçue pose un
+  problème différent, non par hasard mais par l'**histoire des gestes
+  précédents**. Variabilité infinie et gratuite, générée par les joueurs. Plus
+  besoin d'un générateur aléatoire.
+- **Courbe de difficulté naturelle sans niveaux** : tôt = libre/facile, tard =
+  contraint/dur. S'aligne avec les slots par niveau (pierres très contraintes →
+  hauts niveaux ; pierres libres → débutants).
+- **Vrai sens de « faire avec »** : l'inconnu d'avant a dépensé la liberté
+  commune d'une certaine façon ; je compose avec le champ qu'il m'a laissé. Il
+  n'a pas commis de faute, il a fait un choix légitime qui a fermé des portes et
+  ouvert d'autres. J'hérite de son *chemin*, pas de sa *faute*.
+
+### Garde-fou (le même que toujours, ici vital)
+La liberté qui se referme ne doit JAMAIS tomber à zéro avant la dernière pierre.
+Si l'avant-dernier peut rendre la dernière **impossible** (aucune solution
+valable restante), on retombe dans le blocage mortel du « gravé ». La règle des
+contraintes doit garantir qu'il **reste toujours ≥1 solution jouable**, même
+étroite, jusqu'au bout. Le champ se referme, ne se ferme jamais complètement.
+
+### Conséquence pour les protos
+Le geste ne change pas (on taille en enlevant des cubes), l'affichage ne change
+pas (iso, silhouette devient simple repère facultatif), seul le **calcul du
+score** change : de « compare à la cible » → « évalue N contraintes ». Modif
+circonscrite, pas une réécriture. Prochaine version des protos à faire là-dessus.
 
 ## 4. Le château (pas la cathédrale)
 
@@ -197,12 +264,11 @@ Hérité de la réflexion sur les rencontres physiques, transposé :
 
 ## 7. Risques connus (à garder en tête, pas à traiter maintenant)
 
-- **Déficit d'anticipation** (angle mort révélé par l'analyse Pokémon) :
-  Pokémon a de l'aléatoire partout (chaque herbe haute) ; Cairn n'en a qu'à UN
-  endroit — l'état de la pierre héritée. Le geste de taille, une fois maîtrisé,
-  devient prévisible. Si le jeu s'essouffle un jour, ce sera probablement par
-  là. Question à rouvrir PLUS TARD (pas au proto) : où mettre de la variabilité
-  au-delà de l'héritage ?
+- **Déficit d'anticipation** (angle mort révélé par l'analyse Pokémon) —
+  **EN GRANDE PARTIE COMBLÉ** par la « liberté qui se referme » (§3bis) : chaque
+  pierre reçue pose un problème différent généré par l'histoire des gestes
+  précédents, pas par un générateur aléatoire. Reste à vérifier en jeu que cette
+  variabilité suffit à garder le geste frais dans la durée.
 - **Le déséquilibre offre/demande** (si on réintroduit un jour un système de
   demande d'aide) : tout le monde veut être aidé, peu veulent aider. Levier
   connu : aider doit être le meilleur farm, mais coûter une ressource rare
@@ -210,6 +276,84 @@ Hérité de la réflexion sur les rencontres physiques, transposé :
 - **Le geste fade** : tout repose sur le fait que tailler + « faire avec »
   procure une étincelle. Si c'est un clic creux, aucune récompense ne le sauve.
   C'est ce que les protos vérifient.
+
+- **Le contenu fini** (leçon Chivalry) : Chivalry 2 — pic ~16 900 joueurs au
+  lancement, retombé à ~2 000-2 500 (−66 %). Une cause : une fois toutes les
+  cartes/modes vus, on tourne en rond. Cairn a une parade PARTIELLE (contenu
+  généré par les joueurs : chaque pierre héritée est neuve, cf. « liberté qui se
+  referme »). MAIS question non résolue : **quand le château est fini, on fait
+  quoi ?** Si la réponse est « rien », c'est le même mur que Chivalry, décalé.
+  Pistes (pour plus tard) : châteaux infinis / nouveaux chantiers qui
+  recommencent / une raison de revenir sur un château fini (l'entretenir, le
+  visiter, en admirer l'archive). À trancher une fois le cœur validé.
+
+- **Le try-hard toxique, version Cairn** (leçon Chivalry, la plus subtile) :
+  Chez Chivalry, la mort vient de l'**écart de compétence qui s'auto-renforce** —
+  les mordus deviennent excellents, les nouveaux se font démonter en 3 s et
+  partent, la population vieillit et rétrécit jusqu'à un club fermé d'experts.
+  Le jeu se rend HOSTILE à mesure qu'il mûrit : chaque joueur est une menace,
+  la population forte joue CONTRE l'accessibilité.
+  → Cairn est structurellement l'antidote (voir §8) MAIS un risque analogue
+  subsiste sous une autre forme : un vétéran pourrait juger que les pierres des
+  débutants « salissent » le château commun. Le grief ne serait pas « tu me
+  tues » mais « tu bâcles NOTRE ouvrage ». Le **score visible** pourrait créer
+  une hiérarchie de mépris entre bons et mauvais tailleurs. C'est le « try-hard »
+  de Cairn.
+  Garde-fous déjà en place : l'**anonymat** (on ne peut pas mépriser qui on ne
+  voit pas) et le fait qu'une pierre « moyenne » sert quand même (reclassée,
+  jamais jetée). Vigilance à garder : ne pas transformer le score en outil de
+  jugement social ; envisager que le score reste privé / ressenti plutôt
+  qu'affiché publiquement et comparé.
+
+---
+
+## 7bis. Décisions différées (notées, PAS à traiter maintenant)
+
+> Rangées ici exprès pour ne pas polluer les protos. Chacune est un vrai sujet,
+> mais aucune ne débloque une question ouverte actuelle — donc on attend.
+
+### Rendu lissé de la pierre (cosmétique — pour quand le jeu passe de
+### « tester » à « séduire »)
+Aujourd'hui la pierre est un tas de cubes visibles (voxels iso). Une fois les
+mécaniques validées, on pourra afficher une **surface lisse** à la place, sans
+toucher au modèle de jeu.
+- Technique : la grille de cubes reste le modèle logique (jauges, matière
+  enlevée) ; le lissage est une pure **couche d'affichage** par-dessus.
+  Algorithmes : **marching cubes** (historique), ou **surface nets / dual
+  contouring** (mieux pour les arêtes vives, ce qu'on veut pour une pierre
+  taillée : angles nets + faces planes, pas du tout arrondi).
+- Point clé : **les imperfections survivent au lissage** — un cube mangé en
+  trop devient un léger creux / une facette de travers, pas une marche. Le
+  lissage traduit les défauts en accidents de surface réalistes, il ne les
+  efface pas. Exactement ce qu'on veut (garder la trace du geste, en pierre
+  crédible).
+- Plus tard encore : grain, traces d'outil, usure — habillage d'habillage.
+- ⚠️ Pourquoi attendre : le lissage ne change AUCUNE question ouverte (maçon,
+  chaîne de métiers, sel de l'inconnu marchent aussi bien en cubes). Pire, une
+  belle surface **embellit les protos et fausse le jugement** (le thermomètre
+  parfumé). Le cube moche est l'allié du test. Le lissage = récompense pour
+  l'étape « rendre beau », gain énorme pour peu d'efforts (le modèle ne bouge
+  pas), à faire quand la question deviendra « comment séduire ».
+
+### Le geste du maçon (à concevoir avant la chaîne de métiers)
+Le maçon place les pierres, jouable. L'architecte (non jouable en v1) = le jeu
+lui-même, qui fournit le **plan sous forme de contraintes** (« un mur qui tient
+entre ici et là, cette hauteur »), JAMAIS un patron pierre-par-pierre à
+décalquer — sinon on réintroduit le schéma-à-copier déjà rejeté (le score
+mesure la fonction, pas la ressemblance).
+Choix NON tranché — deux maçons possibles, deux morales :
+- **Maçon-placeur** : skill = jugement d'appariement (trouver la place où les
+  défauts d'une pierre ne gênent pas). Casse-tête spatial type Tetris à pièces
+  imparfaites. Le défaut est *neutralisé par un bon placement* (rejoint « rien
+  ne se gâche, tout se recase »). Morale : « une juste place pour chaque chose,
+  même imparfaite ».
+- **Maçon-ajusteur** : skill = compenser au mortier, égaliser l'assise pour que
+  la pierre suivante parte droite malgré le défaut hérité. Le défaut est
+  *absorbé* (incarne le garde-fou « le défaut s'atténue au lieu de s'amplifier »
+  de §3). Morale : « on soigne les blessures du travail des autres ».
+Intuition actuelle : le placeur crée une décision plus riche à chaque pierre
+(où la mettre ?) ; l'ajusteur boucle mieux la chaîne de propagation du DESIGN.
+À trancher au moment de concevoir le maçon, pas avant.
 
 ---
 
@@ -240,76 +384,68 @@ Hérité de la réflexion sur les rencontres physiques, transposé :
 - **FarmVille** — MÊME squelette (progression débloquée par autrui) mais geste
   d'aide VIDE → détesté. Cairn = le même squelette avec l'âme (le geste a du
   goût et laisse une trace). C'est la carte au trésor à l'envers.
+- **Chivalry 2 (contre-modèle de DURABILITÉ)** — combat médiéval multi
+  compétitif. Pic ~16 900 → ~2 000-2 500 (−66 %). Mort typique du compétitif :
+  l'écart de compétence s'auto-renforce (mordus → experts, nouveaux démontés en
+  3 s → partent), la population vieillit et se referme en club d'experts, et
+  **chaque joueur est une MENACE** → le jeu devient hostile à mesure qu'il
+  mûrit, la population forte joue CONTRE l'accessibilité.
+  Cairn est le **négatif photographique** de ces causes de mort :
+  - écart de compétence → chez Cairn, vétéran et débutant ne s'affrontent pas,
+    ils contribuent au MÊME château (liberté qui se referme = courbe de
+    difficulté où chacun a sa place : pierres contraintes aux experts, pierres
+    libres aux débutants). L'expertise *complète* au lieu d'*exclure*.
+  - autre = menace → chez Cairn, gravé/invandalisable : l'autre ne peut jamais
+    nuire. Plus il y a de monde, plus c'est ACCUEILLANT. L'effet réseau réchauffe
+    au lieu de menacer.
+  - « mort en 3 s, recommence » → chez Cairn, pas de mort/défaite/perte. Le pire
+    = une pierre à 70 % qui sert quand même.
+  **Thèse de durabilité** : là où le modèle compétitif porte sa propre asphyxie
+  (santé DÉCROÎT avec la population experte), Cairn est conçu pour que sa **santé
+  CROISSE avec la population**. Structurellement plus durable qu'un Chivalry.
+  (Épines conservées en §7 : contenu fini + try-hard toxique version Cairn.)
+- **Minecraft (LE concurrent conceptuel — le plus proche, à connaître par
+  cœur)** — sandbox de construction, ~15 ans, revenus toujours en hausse
+  (220 M$ en 2024). Prouve à l'échelle planétaire que **bâtir ensemble sur un
+  monde persistant est puissant et durable**. Donc le pari de fond de Cairn
+  n'en est pas un — il a un précédent géant. Ce que Minecraft VALIDE pour Cairn :
+  le voxel comme langage iconique (le blocky n'est pas un défaut → la beauté
+  n'est pas notre risque) ; la co-création sociale réchauffe vraiment
+  (Poudlard brique par brique = l'étage 2 de Cairn a un précédent) ; pas
+  d'objectif imposé = rétention longue (comme le château sans siège/défaite).
+
+  ⚠️ MENACE FRONTALE : Minecraft fait déjà « construire ensemble », en mieux,
+  avec 15 ans d'avance. Réponse à « en quoi c'est pas un Minecraft en moins
+  bien ? » = TROIS oppositions, chacune une force de Cairn LÀ OÙ Minecraft est
+  faible (= pitch défensif à connaître) :
+  1. **Contrainte vs liberté infinie.** Minecraft creative = ressources
+     infinies, aucune règle, pose n'importe quel bloc n'importe où. Faiblesse
+     cachée : la page blanche lasse (témoignages « je me suis ennuyé et j'ai
+     arrêté »). Poser un bloc est trivial. Cairn = la pierre RÉSISTE (cahier des
+     charges, liberté qui se referme), tailler est un GESTE qu'on maîtrise.
+     Cairn offre la *fierté de la compétence* ; Minecraft, la *liberté de
+     l'expression*. Deux plaisirs, deux publics (Cairn vise ceux pour qui la
+     page blanche angoisse et qui ont besoin d'un cadre pour ressentir la
+     maîtrise).
+  2. **Inconnu anonyme vs entre-soi.** Minecraft = ton terrain / ton serveur de
+     potes choisis. PAS d'« héritage à moitié fait d'un inconnu jamais
+     rencontré, avec qui je compose ». Le cœur de Cairn (validé Proto 2) n'existe
+     nulle part dans Minecraft. Sandbox personnel/entre-soi vs chaîne de mains
+     anonymes = nature sociale complètement différente.
+  3. **Gravé vs réversible.** Minecraft = casse un bloc, recommence, rien ne
+     pèse, bloc jetable. Cairn = irréversible → le geste ENGAGE, pèse, devient
+     trace pour toujours → pierre PRÉCIEUSE. Minecraft ne peut pas avoir cette
+     gravité (contraire à sa philosophie de liberté).
+
+  Leçon sur le CONTENU FINI (§7) : la solution de Minecraft = l'absence de fin
+  par design (monde infini, buts inventés par le joueur). Cairn a un château qui
+  SE TERMINE — double tranchant : satisfaction de complétion que Minecraft
+  n'offre JAMAIS (+), mais risque d'essoufflement (−). Ne PAS copier l'infini
+  (ça renierait la complétion). Viser : **fin locale** (ce château-ci s'achève,
+  et c'est beau = force sur Minecraft) + **continuité globale** (un nouveau
+  chantier attend toujours). On récupère les DEUX : complétion ET durée infinie,
+  là où Minecraft n'a que la durée.
 
 **Place vide occupée par Cairn** : hériter en asynchrone du chantier imparfait
 d'un inconnu, et *briller en le rattrapant*, dans une chaîne de métiers, sur un
 objet commun gravé et invandalisable. Jamais assemblé ainsi.
-
----
-
-## 10. Ce que les protos ont tranché (29/08/2026)
-
-### Les deux verdicts
-
-- **Proto 1 — OUI sur ses deux questions.** Le geste de taille est satisfaisant,
-  et le frisson du dernier coup est là. Mais pas du premier coup : la première
-  version a été jugée *redondante*, et la cause était qu'il n'existait qu'une
-  seule bonne méthode. Corrigé en donnant à chaque pierre une **commande** qui
-  dit ce qui compte pour elle — d'où un arbitrage réel, mesuré.
-- **Proto 2 — OUI. LE PARI EST GAGNÉ.** « Les coups tordus et bâclés sont plus
-  fun. » Hériter du travail imparfait d'un inconnu et composer avec est *plus*
-  prenant que partir d'un bloc neuf. L'imperfection héritée crée de la valeur.
-
-> Restriction : l'inconnu est simulé par un bot. Le lien avec une **vraie**
-> personne n'est pas testé et ne peut pas l'être en solo (§1). C'est l'étage
-> suivant, et c'est maintenant la principale inconnue du projet.
-
-### Deux enseignements de méthode, chèrement acquis
-
-1. **Le score ne doit pas avoir une seule bonne réponse.** La première version
-   du Proto 1 donnait 94 à une ligne de jeu et 42 à toutes les autres : ce n'est
-   pas du skill, c'est de l'exécution — et l'exécution ne donne pas envie de
-   recommencer. Une table de stratégies saine montre plusieurs lignes viables.
-2. **« À la cote » n'est pas « au cube près ».** Tant que l'exactitude était
-   exigée partout, l'outil fin restait obligatoire partout, donc une seule
-   méthode. La **tolérance**, variable selon que la face se verra ou non, est ce
-   qui a débloqué tout le reste. C'est le §3 appliqué : une *famille* de pierres
-   valables, pas un modèle unique.
-
-### La réserve qui reste : ça ne ressemble pas encore à un tailleur de pierre
-
-Retour de partie répété, jusqu'au bout : *« ça ressemble au jeu Sixty Four
-plutôt qu'à un tailleur de pierre »*. C'est juste, et il faut distinguer deux
-problèmes que j'ai longtemps confondus :
-
-- **Le verbe** — réglé. On ne fait plus disparaître des paquets de cubes ; on
-  maintient, on balaie, l'outil frappe en cadence et rabote des copeaux. Ça
-  *joue* comme de la taille.
-- **La matière** — pas réglé. Ça *ressemble* encore à du minage abstrait.
-
-Causes, par ordre d'importance :
-
-1. **La maille de cubes.** La surface est un treillis de cubes séparés, aux
-   facettes nettes. C'est *la* signature du jeu de voxels. Or elle n'a jamais
-   été un choix de design : c'était une **facilité de prototype**, imposée par
-   le brief (iso 2D, cubes empilés) pour pouvoir coder vite en canvas 2D.
-   → **Décision : la maille de cubes ne survit pas au prototype.** Le vrai jeu
-   doit présenter une surface **continue et irrégulière**. Le moteur porte déjà
-   une usure fractionnaire (un cube à demi rongé est reculé d'autant) : la suite
-   naturelle est un relief continu, pas des cubes discrets.
-2. **Le vide autour.** Le bloc flotte sur une ombre dans le noir. Pas d'établi,
-   pas d'atelier, aucune échelle, rien d'humain. Une scène de tailleur se
-   définit autant par ce qui entoure la pierre que par la pierre.
-   → Poser la pierre sur un **chevalet**, dans un lieu.
-3. **Les éclats s'évaporent.** Ils volent et disparaissent. Dans un atelier, la
-   poussière et les éclats **s'accumulent au pied du bloc** : c'est la trace
-   visible du travail fourni. Bon marché, et parfaitement dans la thèse du jeu
-   (§2, archive-mémoire).
-4. **Aucun corps.** Pas de main, pas de maillet, pas de fer dans le cadre :
-   l'outil est un cercle. Un jeu de taille montre le ciseau contre la pierre.
-5. **Le son.** Toujours interdit au proto, et c'est le canal le plus important
-   qui manque pour qu'on sente *quelqu'un* frapper de la pierre. À rouvrir en
-   premier hors proto.
-
-> Les points 1 et 2 sont structurels — ils décident de ce à quoi le jeu
-> ressemble. Les 3, 4 et 5 sont additifs et peu coûteux.
