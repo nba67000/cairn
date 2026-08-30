@@ -115,85 +115,92 @@ faible (« solide, mais l'emboîtement à droite est juste »).
 
 `index.html` — un seul fichier, canvas 2D, aucune dépendance.
 
-### Le modèle est devenu un modèle de COLONNES
+### Le modèle : six profondeurs de coupe, une par face
 
-C'est ce qu'exigeait l'arasement, et c'est ce qui rend la planéité mesurable.
-Chaque colonne (x,y) est pleine de `bas` à `haut`, en hauteurs **fractionnaires**
-— sinon l'arasement se ferait en marches d'escalier au lieu de progresser.
+Première version : des colonnes verticales, donc seulement le dessus et le
+dessous accessibles. Corrigé — **un tailleur dresse six faces.** La pierre est
+maintenant ce qui survit à l'intersection de six coupes, une par face. C'est
+exactement la façon dont on équarrit un bloc.
 
-Deux surfaces, donc **deux lits**. D'où un ajout que je signale, parce qu'il
-n'était pas au brief : un bouton **« Retourner la pierre »**. Sans lui la face du
-dessous est le sol, donc plane d'office, donc la contrainte 1 serait morte. On
-retourne l'objet sur le chevalet — la caméra, elle, ne bouge pas.
+Deux gestes de chevalet, **Tourner** (T) et **Basculer** (B) : trois faces sont
+sous la main à la fois, les six sont atteignables. La caméra ne bouge jamais.
+La pierre **garde ses rôles** à travers les rotations — le panneau dit en
+permanence où sont passés les deux lits et la face de joint, et les lits se
+teintent en froid sur la pierre.
 
-### L'arasement, et l'angle mort de la règle
+> Vérifié : quatre quarts de tour et quatre basculements ramènent **exactement**
+> à l'état de départ ; les trois rôles peuvent tous être amenés sous la main ;
+> et **6/6 faces sont réellement entamables**.
 
-Codé avant toute mesure de planéité, comme demandé. Dans le rayon de l'outil :
-on repère le point le plus bas de la zone, et chaque colonne perd une part de ce
-qui **dépasse** de ce point. Une colonne déjà au fond n'est pas touchée.
+### L'arasement, et les deux angles morts trouvés au test
 
-> **Mesuré** : une bosse de 3 cubes passe de 9,00 à 6,55 en 12 coups de ciseau,
-> et l'écart moyen tombe de 0,059 à 0,011. La planéité se **gagne**.
-> La colonne voisine, déjà au niveau, ne bouge pas d'un cheveu.
+Codé avant toute mesure de planéité. Dans le rayon de l'outil : on repère le
+point le plus saillant, et chaque colonne perd une part de ce qui dépasse. Une
+colonne déjà au fond n'est pas touchée.
 
-⚠️ **La règle prise au pied de la lettre a un angle mort**, trouvé au test : si
-toute la zone frappée est au même niveau, rien ne « dépasse », donc l'outil ne
-mord jamais — on ne pourrait même pas dégrossir un bloc neuf. J'ai donc ajouté
-un second régime : **sur une surface déjà de niveau, le fer prend un copeau franc
-sur toute son emprise** (c'est ce que fait un vrai fer). Sur une surface
-bosselée, arasement proportionnel pur. Les deux régimes, pas un compromis entre
-les deux.
+**Angle mort n°1 — la règle ne mord pas une surface plane.** Si toute la zone
+est de niveau, rien ne « dépasse », donc rien n'est ôté : on ne pourrait même
+pas dégrossir un bloc neuf. Deux régimes, donc : arasement proportionnel sur une
+surface bosselée, **copeau franc sur toute l'emprise** sur une surface plane —
+ce que fait un vrai fer.
 
-### Le scoring : cinq contraintes, aucune cible
+**Angle mort n°2 — la coupe restait bloquée au premier cube.** J'ancrais la
+profondeur sur la surface *quantifiée au cube* : elle valait 0 tant qu'aucun
+cube entier n'était tombé, donc la coupe ne pouvait jamais avancer. Il fallait
+une profondeur **continue**. Symptôme : 400 coups de ciseau ne changeaient
+strictement rien.
 
-Chacune est commentée dans le code. Le point qui compte, mesuré :
+> Après correction : l'écart moyen passe de **0,131 à 0,068** en 400 coups.
+> La planéité se gagne, progressivement.
 
-| Pierre | Épaisseur | Posée à | Score |
-|---|---|---|---|
-| mince, posée bas | 5,1 | 0 | **100** |
-| épaisse, posée bas | 6,9 | 0 | **100** |
-| mince, posée haut | 5,2 | 3 | **100** |
+**Et une précaution de mesure** : près des arêtes, une colonne peut avoir été
+emportée par la coupe d'une *autre* face. La compter dans la planéité rendait
+celle-ci impossible à gagner — le ciseau ne peut rien contre une arête rongée
+d'ailleurs. On ne mesure donc que les colonnes qui appartiennent vraiment à la
+face. C'est le geste du tailleur : on règle à la règle sur la face, pas sur
+l'arête.
 
-Trois pierres **franchement différentes**, toutes parfaites. Il n'y a pas UN
-cube correct. C'est la multitude de solutions, et elle est vérifiée.
+### Le scoring : six contraintes, aucune cible
 
-Le repère (fourchette d'épaisseur) est togglable et **n'entre jamais dans le
-calcul** : on peut s'en écarter et mieux scorer.
+Une contrainte de plus que le brief, rendue possible par les six faces :
+**faces de joint d'équerre** — les quatre faces qui ne sont pas des lits doivent
+être dressées, c'est par elles que la pierre touche ses voisines.
 
-### Les outils gardent leur sens dans le monde des contraintes
+Le point qui compte, mesuré :
 
-Un tailleur complet, sur un bloc neuf, contraintes `[lit bas, lit haut,
-épaisseur, portance]` :
+| Pierre | Score |
+|---|---|
+| mince, matière vers le bas | **94** |
+| épaisse, matière vers le bas | **96** |
+| mince, matière vers le haut | **94** |
 
-| Étape | Épaisseur | Contraintes | Score |
-|---|---|---|---|
-| bloc de carrière | 8,29 | 74 · 43 · 46 · 100 | **63** |
-| chasse sur le dessus | 7,44 | 74 · 70 · 82 · 100 | **80** |
-| retourné, chasse sur l'autre lit | 6,61 | 95 · 89 · 100 · 100 | **96** |
-| pointe, puis ciseau | 6,23 | 99 · 92 · 100 · 100 | **98** |
-| retourné, pointe et ciseau | 5,85 | 99 · 98 · 100 · 100 | **99** |
+Des pierres franchement différentes, toutes valables. Il n'y a pas UN cube
+correct. Le repère (fourchette d'épaisseur) est togglable et **n'entre jamais**
+dans le calcul.
 
-La chasse fait le gros, les fins vont chercher les derniers points, et **il faut
-travailler les deux lits** — un bot qui n'en travaille qu'un plafonne à 84.
+### Les outils gardent leur sens
 
-### Le garde-fou de solvabilité, prouvé et non espéré
+Un tailleur qui tourne sa pierre et surveille ses jauges :
 
-Il existe toujours au moins une solution : tailler exactement le profil de la
-voisine — **à condition** que ce profil soit atteignable en enlevant seulement
-(gravé) et que l'épaisseur qu'il impose tienne dans la fourchette. Les deux sont
-vérifiés à chaque instant et affichés en clair si l'un échoue.
+| Étape | Épaisseur | Score |
+|---|---|---|
+| bloc de carrière | 9,6 | **66** |
+| chasse sur les deux lits | 6,4 | **88** |
+| pointe | 5,9 | **89** |
+| ciseau, puis retourné | 5,0 | **90** |
 
-Premier test : les voisines tordues étaient **souvent hors d'atteinte** (le
-garde-fou les refusait, à raison). Cause : je les fabriquais dans le vide. Elles
-sont maintenant engendrées **d'après le bloc qui vient d'être tiré**, dans la
-bande qu'il peut encore donner. **40 tirages, 40 atteignables.** Et une voisine
+### Le garde-fou, prouvé et non espéré
+
+Il reste toujours une solution — tailler exactement le profil de la voisine — à
+condition qu'il soit atteignable en **enlevant seulement**. Vérifié en continu et
+affiché en clair si ça échoue. Les voisines sont engendrées **d'après le bloc qui
+vient d'être tiré** : **40 tirages, 40 atteignables**, et une voisine
 volontairement impossible est bien détectée.
 
 ### Les deux modes de score
 
-Bascule dans le panneau. Sur la pierre finie ci-dessus : **minimum 98 / moyenne
-99**. Le minimum est plus sévère par construction ; c'est au ressenti de
-trancher, et c'est une des questions du verdict.
+Bascule dans le panneau, comme demandé. Le minimum est plus sévère par
+construction ; c'est au ressenti de trancher — une des questions du verdict.
 
 ---
 

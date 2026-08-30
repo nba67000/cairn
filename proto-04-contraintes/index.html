@@ -15,7 +15,7 @@
     font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;overflow:hidden}
   #stage{flex:1;position:relative;min-width:0;overflow:hidden}
   canvas{display:block;width:100%;height:100%;cursor:crosshair}
-  #panel{width:340px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+  #panel{width:344px;flex:none;background:var(--panel);border-left:1px solid var(--line);
     padding:14px 15px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
   h1{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0;font-weight:600}
   h2{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 7px;font-weight:600}
@@ -46,19 +46,24 @@
     font:inherit;font-size:12px;border-radius:3px;cursor:pointer;margin-bottom:5px}
   .btn:hover{background:#2b2720}
   .btn.on{background:#3a3225;border-color:var(--amber);color:#f0e6d4}
+  .duo{display:flex;gap:6px}
+  .duo .btn{margin-bottom:0}
   .big{width:100%;padding:10px;background:#3a3225;border:1px solid var(--amber);
     color:#f0e6d4;font:inherit;font-weight:600;border-radius:3px;cursor:pointer}
   .big:hover{background:#4a3f2c}
   .note{font-size:10.5px;color:var(--dim);line-height:1.5;margin:6px 0 0}
   .alerte{background:#3a1f1b;border:1px solid var(--bad);color:#e8b0a6;
     padding:8px 10px;border-radius:3px;font-size:11.5px;line-height:1.45;margin-top:8px}
+  .roles{font-size:11px;line-height:1.75;color:var(--dim);margin:9px 0 0}
+  .roles b{color:#c3cfd6;font-weight:600}
+  .roles .loin{color:#7a6f60;font-style:italic}
 
   #global{display:flex;align-items:baseline;gap:8px}
   #gScore{font:600 34px/1 ui-monospace,Consolas,monospace;color:#f0e6d4}
   #end{position:absolute;inset:0;display:none;place-items:center;
     background:rgba(15,13,11,.92);backdrop-filter:blur(3px)}
   #end.on{display:grid}
-  .card{width:460px;text-align:center;padding:28px}
+  .card{width:470px;text-align:center;padding:28px}
   .score{font:600 72px/1 ui-monospace,Consolas,monospace;color:#f0e6d4}
   .score small{font-size:24px;color:var(--dim)}
   .verd{margin:12px 0 20px;color:#c9b795;font-size:15px;font-style:italic;line-height:1.55}
@@ -95,12 +100,24 @@
   </div>
 
   <div class="sect">
+    <h2>La pierre sur le chevalet</h2>
+    <div class="duo">
+      <button class="btn" id="tourner">↻ Tourner <span style="color:var(--dim)">T</span></button>
+      <button class="btn" id="basculer">⤾ Basculer <span style="color:var(--dim)">B</span></button>
+    </div>
+    <p class="roles" id="roles"></p>
+    <p class="note">Trois faces sont sous la main à la fois. Tourne et bascule
+    pour atteindre les six — c'est le geste du chevalet, la caméra ne bouge pas.</p>
+  </div>
+
+  <div class="sect">
     <h2>Cahier des charges</h2>
     <div class="c" id="c0"><div class="top"><span class="nm">Lit inférieur plan</span><span><span class="vl">0</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
     <div class="c" id="c1"><div class="top"><span class="nm">Lit supérieur plan et parallèle</span><span><span class="vl">0</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
     <div class="c" id="c2"><div class="top"><span class="nm">Épaisseur dans la fourchette</span><span><span class="vl">0</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
     <div class="c" id="c3"><div class="top"><span class="nm">Matière portante</span><span><span class="vl">0</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
-    <div class="c" id="c4"><div class="top"><span class="nm off">Emboîtement à droite</span><span><span class="vl">—</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
+    <div class="c" id="c4"><div class="top"><span class="nm">Faces de joint d'équerre</span><span><span class="vl">0</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
+    <div class="c" id="c5"><div class="top"><span class="nm off">Emboîtement avec la voisine</span><span><span class="vl">—</span><span class="dl"></span></span></div><div class="bar"><div class="fill"></div></div></div>
     <div id="alerte" class="alerte" style="display:none"></div>
   </div>
 
@@ -114,9 +131,8 @@
   </div>
 
   <div class="sect">
-    <button class="btn" id="retourner">Retourner la pierre</button>
     <button class="btn" id="silhouette">Repère : masqué</button>
-    <p class="note" id="repereNote">Le repère montre une <b>zone raisonnable</b>, jamais la réponse.
+    <p class="note">Le repère montre une <b>zone raisonnable</b>, jamais la réponse.
     Le score ne le regarde pas : s'en écarter peut donner un meilleur score.</p>
   </div>
 
@@ -132,45 +148,129 @@
 /* ==================================================================== *
  *  Cairn — Proto 4 : le cahier des charges
  *
- *  CE QUI CHANGE, ET C'EST TOUT LE SUJET : il n'y a plus de bloc-cible.
- *  La pierre n'est pas comparée à une forme attendue ; elle est mesurée sur
- *  une liste de CONTRAINTES. Des milliers de pierres différentes les
- *  satisfont — c'est la « multitude de solutions » du DESIGN §3bis.
+ *  CE QUI CHANGE, ET C'EST TOUT LE SUJET : il n'y a plus de bloc-cible. La
+ *  pierre n'est pas comparée à une forme attendue ; elle est mesurée sur une
+ *  liste de CONTRAINTES. Des milliers de pierres différentes les satisfont —
+ *  c'est la « multitude de solutions » du DESIGN §3bis.
  *
- *  Le geste et le rendu ne changent pas : on enlève des cubes, en iso 2D,
- *  vue fixe. Le modèle interne, lui, devient un modèle de COLONNES : c'est
- *  ce qu'exige l'arasement, et c'est ce qui rend la planéité mesurable.
+ *  LE MODÈLE : six profondeurs de coupe, une par face. C'est la façon dont on
+ *  équarrit un bloc — on dresse chaque face à un plan — et c'est ce qui rend
+ *  les SIX faces attaquables, pas seulement le dessus et le dessous. La pierre
+ *  est ce qui survit à l'intersection des six coupes.
  * ==================================================================== */
 
 /* ---------------- le bloc ---------------- */
-const N = 10;                 // 10 × 10 colonnes
-const TOT = 10;               // hauteur du bloc brut
+const N = 10;                 // 10 × 10 × 10
 const HMIN = 5, HMAX = 7;     // fourchette d'épaisseur : PAS une valeur exacte
-const PORTANT = N * N * 4.6;  // matière minimale pour qu'elle porte la charge
+const PORTANT = 275;          // matière minimale : une pierre dressée sur SIX faces est plus petite
 
-// Une colonne (x,y) est pleine de `bas` à `haut`. Deux surfaces, donc deux lits
-// — et des hauteurs FRACTIONNAIRES, sans quoi l'arasement serait en marches.
-const bas = new Float32Array(N * N);
-const haut = new Float32Array(N * N);
-const ix = (x, y) => x + y * N;
+/* Les six faces. 0=+x 1=-x 2=+y 3=-y 4=+z 5=-z
+   `coupe[f][a*N+b]` = de combien on a déjà entamé la pierre depuis la face f,
+   à la position (a,b) sur cette face. Ça ne fait que croître : gravé. */
+const AXE  = [0, 0, 1, 1, 2, 2];                                  // axe normal
+const SENS = [1, -1, 1, -1, 1, -1];                               // vers l'extérieur
+const TAN  = [[1, 2], [1, 2], [0, 2], [0, 2], [0, 1], [0, 1]];    // axes tangents
+const NOMFACE = ["face de droite", "face arrière-droite", "face de gauche",
+                 "face arrière-gauche", "dessus", "dessous"];
+const VISIBLE = [true, false, true, false, true, false];          // en vue iso
 
-let retourne = false;         // la pierre est-elle posée sur l'autre lit ?
-let figee = false;            // « pierre finie » : gravé, on ne touche plus
-let voisine = null;           // profil de la pierre d'à côté, ou null
-let numero = 1;               // rang dans la chaîne
+const coupe = [0, 1, 2, 3, 4, 5].map(() => new Float32Array(N * N));
+
+/* Rôles suivis à travers les rotations : la pierre garde SES lits, quelle que
+   soit la façon dont on la pose sur le chevalet. */
+let litHaut = 4, litBas = 5, joint = 0;
+let figee = false, voisine = null, numero = 1;
 
 function blocNeuf() {
-  bas.fill(0); haut.fill(TOT);
-  retourne = false; figee = false;
-  // le bloc de carrière n'est pas un cube parfait : ses deux lits sont bruts
-  const ph = () => Math.random() * 6.2832;
-  const a = ph(), b = ph(), c = ph(), d = ph();
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const i = ix(x, y);
-    haut[i] -= Math.max(0, 0.9 + 0.8 * Math.sin(x * .7 + a) + 0.7 * Math.sin(y * .6 + b));
-    bas[i] += Math.max(0, 0.7 + 0.7 * Math.sin(x * .5 + c) + 0.6 * Math.sin(y * .8 + d));
+  for (const c of coupe) c.fill(0);
+  litHaut = 4; litBas = 5; joint = 0;
+  figee = false;
+  // un bloc de carrière n'est pas un cube : ses six faces sont brutes
+  for (let f = 0; f < 6; f++) {
+    const p1 = Math.random() * 6.28, p2 = Math.random() * 6.28, amp = .5 + Math.random();
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++)
+      coupe[f][a * N + b] = Math.max(0,
+        amp * (.35 + .65 * Math.sin(a * .7 + p1)) * (.35 + .65 * Math.sin(b * .6 + p2)));
   }
 }
+
+/* Un cube est PIERRE si son centre survit aux six coupes. Les bornes sont
+   fractionnaires : c'est ce qui permet à l'arasement d'être progressif. */
+function pierre(x, y, z) {
+  if (x < 0 || y < 0 || z < 0 || x >= N || y >= N || z >= N) return false;
+  if (x + .5 < coupe[1][y * N + z] || x + .5 > N - coupe[0][y * N + z]) return false;
+  if (y + .5 < coupe[3][x * N + z] || y + .5 > N - coupe[2][x * N + z]) return false;
+  if (z + .5 < coupe[5][x * N + y] || z + .5 > N - coupe[4][x * N + y]) return false;
+  return true;
+}
+// de combien ce cube-là est déjà grignoté, sur les trois faces visibles
+function grignote(x, y, z) {
+  return [clamp(x + 1 - (N - coupe[0][y * N + z]), 0, .95),
+          clamp(y + 1 - (N - coupe[2][x * N + z]), 0, .95),
+          clamp(z + 1 - (N - coupe[4][x * N + y]), 0, .95)];
+}
+
+/* La surface EFFECTIVE d'une face : ce que l'outil rencontre vraiment. Elle ne
+   se déduit pas de `coupe[f]` seule — une entaille faite depuis une AUTRE face
+   peut avoir déjà emporté la matière. On sonde donc pour de bon. */
+function surface(f, a, b) {
+  const [ta, tb] = TAN[f], na = AXE[f], p = [0, 0, 0];
+  p[ta] = a; p[tb] = b;
+  if (SENS[f] > 0) {
+    for (let k = N - 1; k >= 0; k--) { p[na] = k; if (pierre(p[0], p[1], p[2])) return N - 1 - k; }
+  } else {
+    for (let k = 0; k < N; k++) { p[na] = k; if (pierre(p[0], p[1], p[2])) return k; }
+  }
+  return N;                                    // colonne vide de part en part
+}
+
+/* La profondeur CONTINUE d'une face en (a,b). C'est elle qui pilote tout :
+   `surface()` est quantifiée au cube, et s'y ancrer bloquait la coupe au premier
+   cube — elle ne pouvait plus jamais avancer. La coupe de la face fait donc foi,
+   SAUF si une autre face a mangé plus loin : dans ce cas c'est elle qui commande. */
+function prof(f, a, b) {
+  const c = coupe[f][a * N + b], s = surface(f, a, b);
+  if (s >= N) return N;                          // colonne traversante
+  return (s - c > .75) ? s : c;
+}
+
+/* ---------------- tourner la pierre ---------------- *
+ *  On ne bouge pas la caméra : on retourne l'objet sur le chevalet. Une
+ *  rotation n'est qu'un RENOMMAGE des six faces et de leurs coordonnées. Écrit
+ *  une seule fois, générique — et vérifiable : quatre quarts de tour doivent
+ *  ramener exactement au point de départ.
+ */
+function pivoter(map) {
+  const o = map(0, 0, 0);
+  const dir = v => { const q = map(v[0], v[1], v[2]); return [q[0] - o[0], q[1] - o[1], q[2] - o[2]]; };
+  const faceDe = v => {
+    for (let f = 0; f < 6; f++) {
+      const n = [0, 0, 0]; n[AXE[f]] = SENS[f];
+      if (n[0] === v[0] && n[1] === v[1] && n[2] === v[2]) return f;
+    }
+    return -1;
+  };
+  const neuf = coupe.map(() => new Float32Array(N * N));
+  const avant = { litHaut, litBas, joint }, apres = {};
+  for (let f = 0; f < 6; f++) {
+    const [ta, tb] = TAN[f], na = AXE[f];
+    const n = [0, 0, 0]; n[na] = SENS[f];
+    const g = faceDe(dir(n)), [ta2, tb2] = TAN[g];
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+      const p = [0, 0, 0];
+      p[ta] = a; p[tb] = b; p[na] = SENS[f] > 0 ? N - 1 : 0;
+      const q = map(p[0], p[1], p[2]);
+      neuf[g][q[ta2] * N + q[tb2]] = coupe[f][a * N + b];
+    }
+    for (const r in avant) if (avant[r] === f) apres[r] = g;
+  }
+  for (let f = 0; f < 6; f++) coupe[f].set(neuf[f]);
+  litHaut = apres.litHaut; litBas = apres.litBas; joint = apres.joint;
+}
+// un quart de tour sur le chevalet (autour de la verticale)
+const tourner  = () => pivoter((x, y, z) => [y, N - 1 - x, z]);
+// on bascule la pierre vers soi (autour d'un axe horizontal)
+const basculer = () => pivoter((x, y, z) => [x, N - 1 - z, y]);
 
 /* ---------------- les outils ---------------- *
  *  Ils ne se distinguent PAS par la quantité de cubes retirés mais par la
@@ -178,70 +278,58 @@ function blocNeuf() {
  *  chasse laisse une surface irrégulière — et peut créer de nouvelles bosses.
  */
 const OUTILS = [
-  { nom: "Chasse", rayon: 2.8, intensite: 0.55, grain: 0.85 },
-  { nom: "Pointe", rayon: 1.7, intensite: 0.34, grain: 0.35 },
-  { nom: "Ciseau", rayon: 1.0, intensite: 0.22, grain: 0.06 },
+  { nom: "Chasse", rayon: 2.8, intensite: .55, grain: .85 },
+  { nom: "Pointe", rayon: 1.7, intensite: .34, grain: .35 },
+  { nom: "Ciseau", rayon: 1.0, intensite: .22, grain: .06 },
 ];
-let outil = 0, force = 0.5;
+let outil = 0, force = .5;
 
 /* ---------------- L'ARASEMENT ---------------- *
- *  LE mécanisme central, et il est codé AVANT toute mesure de planéité —
- *  sans lui, frapper enlèverait une couche uniforme et la planéité ne
- *  pourrait jamais s'améliorer par le geste.
+ *  LE mécanisme central, codé AVANT toute mesure de planéité — sans lui,
+ *  frapper enlèverait une couche uniforme et la planéité ne pourrait jamais
+ *  s'améliorer par le geste.
  *
- *  Règle : dans le rayon de l'outil, on ne retire PAS une épaisseur uniforme.
- *  On repère le point le plus BAS de la zone frappée, puis chaque colonne perd
- *  une part de ce qui DÉPASSE de ce point-là.
- *    · une colonne qui dépasse beaucoup (grosse bosse) perd beaucoup
+ *  Dans le rayon de l'outil, on repère le point le plus SAILLANT de la zone
+ *  frappée (celui dont la coupe est la moins avancée), puis chaque colonne perd
+ *  une part de ce qui DÉPASSE de ce point.
+ *    · une colonne qui dépasse beaucoup perd beaucoup
  *    · une colonne qui dépasse peu perd peu
- *    · une colonne déjà au niveau du creux local n'est PAS touchée
- *  Conséquence : taper sur une bosse l'arase, et plus on tape plus ça se lisse.
- *  La planéité est GAGNÉE par le travail, jamais donnée.
+ *    · une colonne déjà au fond du creux local n'est PAS touchée
+ *  Taper sur une bosse l'arase, et plus on tape plus la surface se lisse.
  */
-
-// saillie = de combien la colonne dépasse, DANS LE SENS où l'on travaille.
-// Retournée, c'est le lit du dessous qu'on attaque : la saillie s'inverse.
-const saillie = i => retourne ? -bas[i] : haut[i];
-function raboter(i, d) {                    // enlever `d` de hauteur à la colonne
-  if (retourne) bas[i] = Math.min(bas[i] + d, haut[i]);
-  else          haut[i] = Math.max(haut[i] - d, bas[i]);
-}
-
-function frapper(cx, cy) {
+function frapper(f, ca, cb) {
   if (figee) return 0;
   const t = OUTILS[outil], zone = [];
-  let creux = Infinity;
+  let saillant = Infinity;                     // la profondeur la MOINS avancée
 
-  // 1. la zone frappée, et son point le plus bas
-  for (let y = Math.max(0, Math.ceil(cy - t.rayon)); y <= Math.min(N - 1, Math.floor(cy + t.rayon)); y++)
-    for (let x = Math.max(0, Math.ceil(cx - t.rayon)); x <= Math.min(N - 1, Math.floor(cx + t.rayon)); x++) {
-      const d = Math.hypot(x - cx, y - cy);
+  for (let a = Math.max(0, Math.ceil(ca - t.rayon)); a <= Math.min(N - 1, Math.floor(ca + t.rayon)); a++)
+    for (let b = Math.max(0, Math.ceil(cb - t.rayon)); b <= Math.min(N - 1, Math.floor(cb + t.rayon)); b++) {
+      const d = Math.hypot(a - ca, b - cb);
       if (d > t.rayon) continue;
-      const i = ix(x, y);
-      if (haut[i] - bas[i] <= 0) continue;  // colonne déjà vide
-      zone.push([i, d]);
-      creux = Math.min(creux, saillie(i));
+      const s = prof(f, a, b);
+      if (s >= N) continue;                    // plus rien à mordre ici
+      zone.push([a, b, d, s]);
+      saillant = Math.min(saillant, s);        // petite profondeur = grosse bosse
     }
   if (!zone.length) return 0;
 
-  // 2. y a-t-il seulement quelque chose qui dépasse ?
-  //    La règle proportionnelle a un angle mort : sur une zone déjà de niveau,
-  //    rien ne dépasse, donc rien ne serait ôté — on ne pourrait même pas
-  //    dégrossir un bloc neuf. Un vrai fer, lui, prend un copeau franc sur
-  //    toute son emprise quand la surface est plane. Deux régimes, donc :
-  const bosse = zone.reduce((m, [i]) => Math.max(m, saillie(i) - creux), 0);
-  const arase = bosse > 0.02;
+  // La règle proportionnelle a un angle mort : sur une zone déjà de niveau,
+  // rien ne dépasse, donc rien ne serait ôté — on ne pourrait même pas
+  // dégrossir un bloc neuf. Un vrai fer, lui, prend un copeau franc sur toute
+  // son emprise quand la surface est plane. Deux régimes, donc, pas un
+  // compromis entre les deux.
+  const relief = zone.reduce((m, z) => Math.max(m, z[3] - saillant), 0);
+  const arase = relief > .02;
 
   let ote = 0;
-  for (const [i, d] of zone) {
-    const depassement = saillie(i) - creux;
-    // ARASEMENT : chacun perd à proportion de ce qu'il dépasse du creux local.
-    // Une colonne déjà au fond n'est PAS touchée — c'est ce qui lisse.
-    if (arase && depassement <= 0.001) continue;
-    const bord = 1 - 0.55 * (d / t.rayon) * (d / t.rayon);   // l'outil mord moins sur ses bords
-    const bruit = 1 - t.grain / 2 + Math.random() * t.grain; // la chasse laisse du grain
-    const retrait = (arase ? depassement : 1) * t.intensite * force * bord * bruit;
-    raboter(i, retrait);
+  for (const [a, b, d, s] of zone) {
+    // ce que cette colonne DÉPASSE du fond de la zone
+    const depasse = arase ? (relief - (s - saillant)) : 1;
+    if (arase && depasse <= .001) continue;    // déjà au fond : on n'y touche pas
+    const bord = 1 - .55 * (d / t.rayon) * (d / t.rayon);
+    const bruit = 1 - t.grain / 2 + Math.random() * t.grain;
+    const retrait = depasse * t.intensite * force * bord * bruit;
+    coupe[f][a * N + b] = s + retrait;         // gravé : `s` ne recule jamais, donc la coupe non plus
     ote += retrait;
   }
   return ote;
@@ -249,139 +337,156 @@ function frapper(cx, cy) {
 
 /* ---------------- LES CONTRAINTES ---------------- *
  *  Chacune est une mesure de 0 à 100. AUCUNE ne dit « enlève ce cube-là » :
- *  elles décrivent ce que la pierre doit SATISFAIRE, pas la forme qu'elle
- *  doit avoir. C'est toute la différence avec les protos précédents.
+ *  elles décrivent ce que la pierre doit SATISFAIRE, pas la forme qu'elle doit
+ *  avoir. C'est toute la différence avec les protos précédents.
  */
-
-const colonnes = () => {                    // les colonnes qui portent encore
-  const l = [];
-  for (let i = 0; i < N * N; i++) if (haut[i] - bas[i] > 0.05) l.push(i);
-  return l;
-};
-// écart moyen à la moyenne : 0 = parfaitement plan
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 function ecartMoyen(vals) {
   if (vals.length < 3) return 0;
   const m = vals.reduce((a, b) => a + b, 0) / vals.length;
   return vals.reduce((a, b) => a + Math.abs(b - m), 0) / vals.length;
 }
-const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-
-// 1. LIT INFÉRIEUR PLAN — peu importe OÙ est le plan, il faut qu'il y en ait un.
-//    On mesure la dispersion des altitudes du lit du dessous, rien d'autre.
-function cLitBas() {
-  const c = colonnes();
-  return clamp(100 - 58 * ecartMoyen(c.map(i => bas[i])), 0, 100);
+/* Le relief d'une face — et une précaution qui n'est pas un détail.
+   Une colonne peut avoir été emportée par la coupe d'une AUTRE face : près des
+   arêtes, la matière disparaît par le côté. Ces colonnes-là ne font plus partie
+   de la face, et les compter rendrait la planéité impossible à gagner —
+   le ciseau ne peut rien contre une arête rongée d'ailleurs.
+   On ne retient donc que les colonnes dont la surface est bien celle de CETTE
+   face. C'est le geste du tailleur : on règle à la règle sur la face, pas sur
+   l'arête. */
+function relief(f) {
+  const r = [];
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(f, a, b);
+    if (s >= N) continue;                          // colonne traversante
+    if (s - coupe[f][a * N + b] > .75) continue;   // mangée par une autre face
+    r.push(prof(f, a, b));
+  }
+  return r;
+}
+// l'épaisseur entre les deux lits, colonne par colonne — même précaution
+function epaisseurs() {
+  const e = [];
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const h = surface(litHaut, a, b), o = surface(litBas, a, b);
+    if (h >= N || o >= N) continue;
+    if (h - coupe[litHaut][a * N + b] > .75) continue;
+    if (o - coupe[litBas][a * N + b] > .75) continue;
+    e.push(N - prof(litHaut, a, b) - prof(litBas, a, b));
+  }
+  return e;
 }
 
-// 2. LIT SUPÉRIEUR PLAN ET PARALLÈLE — deux exigences en une, donc on prend la
-//    PLUS FAIBLE des deux : une face plane mais en biais ne porte pas mieux
-//    qu'une face parallèle mais bosselée.
+// 1. LIT INFÉRIEUR PLAN — peu importe OÙ est le plan, il faut qu'il y en ait un.
+function cLitBas() { return clamp(100 - 58 * ecartMoyen(relief(litBas)), 0, 100); }
+
+// 2. LIT SUPÉRIEUR PLAN ET PARALLÈLE — deux exigences en une, donc la PLUS
+//    FAIBLE des deux : une face plane mais en biais ne porte pas mieux qu'une
+//    face parallèle mais bosselée.
 function cLitHaut() {
-  const c = colonnes();
-  if (c.length < 3) return 0;
-  const plan = clamp(100 - 58 * ecartMoyen(c.map(i => haut[i])), 0, 100);
-  const para = clamp(100 - 58 * ecartMoyen(c.map(i => haut[i] - bas[i])), 0, 100);
+  const plan = clamp(100 - 58 * ecartMoyen(relief(litHaut)), 0, 100);
+  const para = clamp(100 - 58 * ecartMoyen(epaisseurs()), 0, 100);
   return Math.min(plan, para);
 }
 
 // 3. ÉPAISSEUR DANS LA FOURCHETTE — une plage, pas une valeur. Une pierre
 //    haute-dans-la-fourchette et une basse-dans-la-fourchette sont TOUTES DEUX
-//    parfaites. En dessous de HMIN c'est trop taillé, et c'est irréversible.
+//    parfaites : c'est là que vit la multitude de solutions.
 function cEpaisseur() {
-  const c = colonnes();
-  if (!c.length) return 0;
-  const e = c.reduce((a, i) => a + (haut[i] - bas[i]), 0) / c.length;
-  if (e >= HMIN && e <= HMAX) return 100;
-  return clamp(100 - 42 * (e < HMIN ? HMIN - e : e - HMAX), 0, 100);
+  const e = epaisseurs();
+  if (!e.length) return 0;
+  const m = e.reduce((a, b) => a + b, 0) / e.length;
+  if (m >= HMIN && m <= HMAX) return 100;
+  return clamp(100 - 42 * (m < HMIN ? HMIN - m : m - HMAX), 0, 100);
 }
 
 // 4. MATIÈRE PORTANTE — il doit rester assez de pierre pour porter la charge.
 function cPortance() {
   let v = 0;
-  for (let i = 0; i < N * N; i++) v += Math.max(0, haut[i] - bas[i]);
+  for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+    if (pierre(x, y, z)) v++;
   return clamp(100 * v / PORTANT, 0, 100);
 }
 
-// 5. EMBOÎTEMENT — la SEULE contrainte qui dépend d'une autre pierre. Ma face
-//    de droite doit épouser le profil que la voisine m'a laissé. Inactive tant
-//    qu'il n'y a pas de voisine : la première pierre d'un mur est libre.
+// 5. FACES DE JOINT D'ÉQUERRE — les quatre faces qui ne sont pas des lits
+//    doivent être dressées : c'est par elles que la pierre touche ses voisines.
+//    Cette contrainte n'a de sens que parce qu'on peut atteindre les six faces.
+function cJoints() {
+  let pire = 100;
+  for (let f = 0; f < 6; f++) {
+    if (f === litHaut || f === litBas) continue;
+    pire = Math.min(pire, clamp(100 - 52 * ecartMoyen(relief(f)), 0, 100));
+  }
+  return pire;
+}
+
+// 6. EMBOÎTEMENT — la SEULE contrainte qui dépend d'une autre pierre. Inactive
+//    tant qu'il n'y a pas de voisine : la première pierre d'un mur est libre.
 function cEmboitement() {
   if (!voisine) return null;
   let ecart = 0, n = 0;
-  for (let y = 0; y < N; y++) {
-    const i = ix(N - 1, y);
-    if (haut[i] - bas[i] <= 0.05) { ecart += 2; n++; continue; }
-    ecart += Math.abs(haut[i] - voisine.haut[y]) + Math.abs(bas[i] - voisine.bas[y]);
-    n++;
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(joint, a, b);
+    ecart += Math.abs(Math.min(s, N) - voisine.p[a * N + b]); n++;
   }
-  return clamp(100 - 34 * (ecart / Math.max(1, n)), 0, 100);
+  return clamp(100 - 40 * (ecart / Math.max(1, n)), 0, 100);
 }
 
 /* ---------------- le score global ---------------- *
- *  Deux modes à comparer : la moyenne pondérée pardonne un point faible ;
- *  le minimum force à toutes les respecter. Le proto sert à trancher.
+ *  Deux modes à comparer : la moyenne pondérée pardonne un point faible ; le
+ *  minimum force à toutes les respecter. Le proto sert à trancher.
  */
 let modeMin = false;
-const POIDS = [1, 1, 1.2, 0.8, 1.4];
+const POIDS = [1, 1, 1.2, .8, .9, 1.4];
 
 function mesurer() {
-  const v = [cLitBas(), cLitHaut(), cEpaisseur(), cPortance(), cEmboitement()];
-  const actives = v.map((x, k) => [x, POIDS[k]]).filter(p => p[0] !== null);
+  const v = [cLitBas(), cLitHaut(), cEpaisseur(), cPortance(), cJoints(), cEmboitement()];
+  const act = v.map((x, k) => [x, POIDS[k]]).filter(p => p[0] !== null);
   const score = modeMin
-    ? Math.min(...actives.map(p => p[0]))
-    : actives.reduce((a, p) => a + p[0] * p[1], 0) / actives.reduce((a, p) => a + p[1], 0);
+    ? Math.min.apply(null, act.map(p => p[0]))
+    : act.reduce((a, p) => a + p[0] * p[1], 0) / act.reduce((a, p) => a + p[1], 0);
   return { v, score };
 }
 
 /* ---------------- LE GARDE-FOU DE SOLVABILITÉ ---------------- *
  *  La liberté se referme, mais ne doit JAMAIS se fermer. On le prouve au lieu
- *  de l'espérer : il existe toujours au moins une solution — tailler
- *  exactement le profil de la voisine — À CONDITION que ce profil soit
- *  atteignable en ENLEVANT seulement (gravé : on ne remet jamais de matière),
- *  et que l'épaisseur qu'il impose tienne dans la fourchette.
- *  Si l'une des deux échoue, on le DIT au lieu de laisser le joueur s'enliser.
+ *  de l'espérer : il reste toujours au moins une solution — tailler exactement
+ *  le profil de la voisine — À CONDITION que ce profil soit atteignable en
+ *  ENLEVANT seulement (gravé). Si ça échoue, on le DIT au lieu de laisser le
+ *  joueur s'enliser.
  */
 function solvable() {
   if (!voisine) return { ok: true };
-  for (let y = 0; y < N; y++) {
-    const i = ix(N - 1, y);
-    // atteignable en enlevant ? il faut que le profil demandé tienne DANS le bloc
-    if (voisine.haut[y] > haut[i] + 0.001 || voisine.bas[y] < bas[i] - 0.001)
-      return { ok: false, pourquoi: `à la rangée ${y + 1}, la voisine demande de la matière qui n'existe plus.` };
-    const ep = voisine.haut[y] - voisine.bas[y];
-    if (ep < HMIN - 1.6 || ep > HMAX + 1.6)
-      return { ok: false, pourquoi: `à la rangée ${y + 1}, épouser la voisine sortirait de la fourchette d'épaisseur.` };
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(joint, a, b);
+    if (s < N && voisine.p[a * N + b] < s - .001)
+      return { ok: false, pourquoi: `en (${a + 1},${b + 1}), la voisine demande de la matière qui n'existe plus.` };
   }
   return { ok: true };
 }
 
-/* ---------------- la voisine ---------------- */
-// Un profil de voisine est LÉGITIME : il vient d'une pierre qui satisfaisait
-// elle-même le cahier des charges. Il n'est pas « fautif », il est un choix.
-// Une voisine est engendrée D'APRÈS le bloc qui vient d'être tiré, jamais dans
-// le vide : le profil doit tenir dans ce que la pierre peut ENCORE donner,
-// sinon il exigerait de la matière qui n'existe plus. C'est le garde-fou de
-// solvabilité appliqué à la source plutôt que constaté trop tard.
+/* ---------------- la voisine ---------------- *
+ *  Un profil de voisine est LÉGITIME : il vient d'une pierre qui satisfaisait
+ *  elle-même le cahier des charges. Ce n'est pas une faute, c'est un choix.
+ *  Il est engendré D'APRÈS le bloc qui vient d'être tiré, jamais dans le vide :
+ *  sinon il exigerait de la matière qui n'existe pas, et le garde-fou le
+ *  refuserait — à raison.
+ */
 function fabriquerVoisine(pente) {
-  let lo = -Infinity, hi = Infinity;             // la bande atteignable sur le bord droit
-  for (let y = 0; y < N; y++) {
-    const i = ix(N - 1, y);
-    lo = Math.max(lo, bas[i]); hi = Math.min(hi, haut[i]);
+  const p = new Float32Array(N * N);
+  let fond = 0;
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(joint, a, b);
+    if (s < N) fond = Math.max(fond, s);
   }
-  const marge = Math.abs(pente) * N / 2;         // de quoi loger le biais
-  const dispo = hi - lo - 2 * marge;
-  const e = clamp(HMIN + 0.4, HMIN, Math.min(HMAX - 0.3, Math.max(HMIN, dispo)));
-  const d = lo + marge + Math.max(0, (dispo - e)) * Math.random();
-  const h = new Float32Array(N), b = new Float32Array(N);
-  for (let y = 0; y < N; y++) {
-    b[y] = clamp(d + pente * (y - N / 2), lo, hi - e);
-    h[y] = b[y] + e;
+  const base = fond + .5 + Math.abs(pente) * N / 2;
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(joint, a, b);
+    p[a * N + b] = Math.max(s < N ? s : 0, base + pente * (a - N / 2));
   }
-  return { haut: h, bas: b, nom: Math.abs(pente) > 0.05 ? "tordue" : "droite" };
+  return { p, nom: Math.abs(pente) > .05 ? "tordue" : "droite" };
 }
-// « Tordue mais légitime » : ses lits sont plans mais en BIAIS, et l'épaisseur
-// reste dans la fourchette partout. Rien à corriger — tout à composer.
-const profilTordu = () => fabriquerVoisine((Math.random() < .5 ? -1 : 1) * (0.16 + Math.random() * 0.12));
+const profilTordu = () => fabriquerVoisine((Math.random() < .5 ? -1 : 1) * (.14 + Math.random() * .1));
 const profilDroit = () => fabriquerVoisine(0);
 
 /* ==================== rendu iso ==================== */
@@ -396,20 +501,17 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   pk.width = cw; pk.height = ch;
   const bw = 40, bh = 20, bz = 24;
-  const needW = (2 * N - 2) * bw / 2 + bw;
-  const needH = (2 * N - 2) * bh / 2 + bh + bz + TOT * bz;
-  const s = clamp(Math.min((cw - 90) / needW, (ch - 80) / needH), .4, 1.6);
+  const s = clamp(Math.min((cw - 110) / ((2 * N - 2) * bw / 2 + bw),
+                           (ch - 80) / ((2 * N - 2) * bh / 2 + bh + bz + N * bz)), .4, 1.6);
   TW = bw * s; TH = bh * s; TZ = bz * s;
-  ox = cw / 2;
-  oy = ch / 2 - ((2 * N - 2) * TH / 2 + TZ - TOT * TZ) / 2;
+  ox = cw / 2 - TW * .8;
+  oy = ch / 2 - ((2 * N - 2) * TH / 2 + TZ - N * TZ) / 2;
   peindrePick(); redessiner = true;
 }
 new ResizeObserver(resize).observe(cv);
 
 const sx = (x, y) => ox + (x - y) * TW / 2;
 const sy = (x, y, z) => oy + (x + y) * TH / 2 - z * TZ;
-const zAff = z => retourne ? TOT - z : z;      // retourner la PIERRE, pas la caméra
-
 function faces(x, y, z) {
   const a = sx(x, y), b = sy(x, y, z), hw = TW / 2, hh = TH / 2;
   return { dessus: [[a, b - hh], [a + hw, b], [a, b + hh], [a - hw, b]],
@@ -423,18 +525,18 @@ function poly(c, p, f, s) {
   if (s) { c.strokeStyle = s; c.lineWidth = 1; c.stroke(); }
 }
 const teinte = (c, f) => `rgb(${c[0] * f | 0},${c[1] * f | 0},${c[2] * f | 0})`;
-const PIERRE = [186, 178, 162], SURVOL = [242, 232, 210], TROP = [196, 100, 84];
+const PIERRE = [186, 178, 162], LIT = [172, 188, 198], SURVOL = [246, 238, 220];
 
-// ordre du peintre : du fond vers l'avant
 const ordre = [];
-for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) ordre.push([x, y]);
-ordre.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
+for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) ordre.push([x, y, z]);
+ordre.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]));
 
-let survol = -1, redessiner = true, apercu = null;
+let survolF = -1, survolA = 0, survolB = 0, redessiner = true, apercu = null, repere = false;
+const cle = (x, y, z) => x * 100 + y * 10 + z;
 
 function dessiner() {
   ctx.clearRect(0, 0, cw, ch);
-  ctx.save();                                  // l'ombre qui pose la pierre
+  ctx.save();
   ctx.translate(ox, oy + (2 * N - 2) * TH / 2 + TZ * .6);
   ctx.scale(1, TH / TW);
   ctx.beginPath(); ctx.arc(0, 0, (2 * N - 2) * TW * .28, 0, 6.2832);
@@ -442,55 +544,36 @@ function dessiner() {
   ctx.restore();
 
   if (repere) dessinerRepere();
-
-  for (const [x, y] of ordre) {
-    const i = ix(x, y);
-    const h = haut[i], b = bas[i];
-    if (h - b <= 0.02) continue;
-    // en vue retournée, le lit du dessous se retrouve en haut
-    const zHaut = retourne ? zAff(b) : zAff(h);
-    const zBas = retourne ? zAff(h) : zAff(b);
-    const sommet = Math.ceil(zHaut) - 1;
-    const pied = Math.floor(zBas);
-    const frac = Math.ceil(zHaut) - zHaut;      // la tranche entamée du cube du haut
-
-    // une pierre trop mince rougit : on est passé sous la fourchette
-    const mince = (h - b) < HMIN - .25;
-    const base = survol === i ? SURVOL : mince ? TROP : PIERRE;
-    const g = .93 + ((i * 2654435761) >>> 0) % 100 / 100 * .1;
-    const av = apercu && apercu.has(i) ? 1 : 0;
-    const col = av ? SURVOL : base;
-
-    for (let z = pied; z <= sommet; z++) {
-      const dz = z === sommet ? frac : 0;
-      const f = faces(x, y, z - dz);
-      const voisinD = x + 1 < N ? ix(x + 1, y) : -1;
-      const voisinG = y + 1 < N ? ix(x, y + 1) : -1;
-      const couvert = (v) => {
-        if (v < 0) return false;
-        const zh = retourne ? zAff(bas[v]) : zAff(haut[v]);
-        const zb = retourne ? zAff(haut[v]) : zAff(bas[v]);
-        return zb <= z + .01 && zh >= z + .99;
-      };
-      if (z === sommet) poly(ctx, f.dessus, teinte(col, 1.0 * g), "rgba(0,0,0,.22)");
-      if (!couvert(voisinG)) poly(ctx, f.gauche, teinte(col, .70 * g), "rgba(0,0,0,.22)");
-      if (!couvert(voisinD)) poly(ctx, f.droite, teinte(col, .52 * g), "rgba(0,0,0,.22)");
-    }
-  }
   if (voisine) dessinerVoisine();
+
+  for (const [x, y, z] of ordre) {
+    if (!pierre(x, y, z)) continue;
+    const ex = !pierre(x + 1, y, z), ey = !pierre(x, y + 1, z), ez = !pierre(x, y, z + 1);
+    if (!ex && !ey && !ez) continue;                    // cube enterré : invisible
+    const g0 = grignote(x, y, z);
+    const f = faces(x - g0[0], y - g0[1], z - g0[2]);
+    const g = .93 + ((x * 73 + y * 179 + z * 311) % 100) / 100 * .1;
+    const vu = apercu && apercu.has(cle(x, y, z));
+    // les deux LITS se teintent en froid : après avoir tourné la pierre trois
+    // fois, il faut pouvoir dire d'un coup d'œil où ils sont passés
+    const cz = vu ? SURVOL : (litHaut === 4 || litBas === 4) ? LIT : PIERRE;
+    const cy2 = vu ? SURVOL : (litHaut === 2 || litBas === 2) ? LIT : PIERRE;
+    const cx2 = vu ? SURVOL : (litHaut === 0 || litBas === 0) ? LIT : PIERRE;
+    if (ez) poly(ctx, f.dessus, teinte(cz, 1.0 * g), "rgba(0,0,0,.22)");
+    if (ey) poly(ctx, f.gauche, teinte(cy2, .70 * g), "rgba(0,0,0,.22)");
+    if (ex) poly(ctx, f.droite, teinte(cx2, .52 * g), "rgba(0,0,0,.22)");
+  }
 }
 
-// Le repère : la BANDE d'épaisseur acceptable, pas une forme à copier. Il ne
-// dit pas où placer la pierre, seulement dans quelle fourchette elle tient.
-let repere = false;
+// Le repère : la BANDE d'épaisseur acceptable, pas une forme à copier.
 function dessinerRepere() {
+  if (litHaut !== 4 && litBas !== 4) return;            // n'a de sens que lits en vue
   ctx.save();
   ctx.strokeStyle = "rgba(200,160,90,.5)"; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
-  for (const z of [HMIN, HMAX]) {
+  for (const h of [HMIN, HMAX]) {
     ctx.beginPath();
-    const coins = [[0, 0], [N, 0], [N, N], [0, N]];
-    coins.forEach(([x, y], k) => {
-      const px = sx(x, y), py = sy(x, y, zAff(z)) - TH / 2;
+    [[0, 0], [N, 0], [N, N], [0, N]].forEach((c, k) => {
+      const px = sx(c[0], c[1]), py = sy(c[0], c[1], h) - TH / 2;
       k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
     });
     ctx.closePath(); ctx.stroke();
@@ -498,63 +581,72 @@ function dessinerRepere() {
   ctx.restore();
 }
 
-// La voisine, posée à droite : on ne la taille pas, on compose avec.
+// La voisine, posée contre la face de joint. On ne la taille pas : on compose.
 function dessinerVoisine() {
-  ctx.save(); ctx.globalAlpha = .5;
-  for (let y = 0; y < N; y++) {
-    const zh = zAff(voisine.haut[y]), zb = zAff(voisine.bas[y]);
-    const hi = Math.max(zh, zb), lo = Math.min(zh, zb);
-    for (let z = Math.floor(lo); z < Math.ceil(hi); z++) {
-      const f = faces(N + 1.5, y, z);
-      poly(ctx, f.dessus, "rgb(96,104,112)", null);
-      poly(ctx, f.gauche, "rgb(68,74,80)", null);
-      poly(ctx, f.droite, "rgb(52,57,62)", null);
-    }
+  if (!VISIBLE[joint]) return;                          // pas en vue : rien à montrer
+  ctx.save(); ctx.globalAlpha = .42;
+  const [ta, tb] = TAN[joint];
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const d = voisine.p[a * N + b];
+    if (d >= N) continue;
+    const p = [0, 0, 0]; p[ta] = a; p[tb] = b;
+    p[AXE[joint]] = N + 1.6 - d;                        // posée juste à côté
+    const f = faces(p[0], p[1], p[2]);
+    poly(ctx, f.dessus, "rgb(98,106,114)", null);
+    poly(ctx, f.gauche, "rgb(70,76,82)", null);
+    poly(ctx, f.droite, "rgb(54,59,64)", null);
   }
   ctx.restore();
 }
 
-/* ---------------- pointage ---------------- */
+/* ---------------- pointage ---------------- *
+ *  On encode le cube ET la face touchée : sans la face on ne saurait pas
+ *  laquelle des six coupes l'outil doit attaquer.
+ */
 function peindrePick() {
   pctx.clearRect(0, 0, cw, ch);
-  for (const [x, y] of ordre) {
-    const i = ix(x, y);
-    if (haut[i] - bas[i] <= 0.02) continue;
-    const zHaut = retourne ? zAff(bas[i]) : zAff(haut[i]);
-    const zBas = retourne ? zAff(haut[i]) : zAff(bas[i]);
-    const v = i + 1, c = `rgb(${v & 255},${(v >> 8) & 255},200)`;
-    for (let z = Math.floor(zBas); z < Math.ceil(zHaut); z++) {
-      const dz = z === Math.ceil(zHaut) - 1 ? Math.ceil(zHaut) - zHaut : 0;
-      const f = faces(x, y, z - dz);
-      poly(pctx, f.dessus, c, null); poly(pctx, f.gauche, c, null); poly(pctx, f.droite, c, null);
-    }
+  for (const [x, y, z] of ordre) {
+    if (!pierre(x, y, z)) continue;
+    const ex = !pierre(x + 1, y, z), ey = !pierre(x, y + 1, z), ez = !pierre(x, y, z + 1);
+    if (!ex && !ey && !ez) continue;
+    const g0 = grignote(x, y, z);
+    const f = faces(x - g0[0], y - g0[1], z - g0[2]);
+    const v = cle(x, y, z) + 1;
+    const c = fc => `rgb(${v & 255},${(v >> 8) & 255},${fc + 1})`;
+    if (ez) poly(pctx, f.dessus, c(4), null);
+    if (ey) poly(pctx, f.gauche, c(2), null);
+    if (ex) poly(pctx, f.droite, c(0), null);
   }
 }
 function pointer(px, py) {
   px |= 0; py |= 0;
-  if (px < 2 || py < 2 || px > cw - 3 || py > ch - 3) return -1;
+  if (px < 2 || py < 2 || px > cw - 3 || py > ch - 3) return null;
   const d = pctx.getImageData(px - 2, py - 2, 5, 5).data;
   for (const k of [12, 6, 8, 16, 18, 0, 4, 20, 24]) {
     const o = k * 4;
-    if (d[o + 3] < 200 || d[o + 2] < 150) continue;
-    const i = (d[o] | (d[o + 1] << 8)) - 1;
-    if (i >= 0 && i < N * N) return i;
+    if (d[o + 3] < 200 || d[o + 2] === 0) continue;
+    const v = (d[o] | (d[o + 1] << 8)) - 1, f = d[o + 2] - 1;
+    if (v < 0 || v > 999 || f < 0 || f > 5) continue;
+    const p = [(v / 100) | 0, ((v / 10) | 0) % 10, v % 10];
+    const [ta, tb] = TAN[f];
+    return { f, a: p[ta], b: p[tb] };
   }
-  return -1;
+  return null;
 }
 
-/* ---------------- affichage des contraintes ---------------- */
+/* ---------------- affichage ---------------- */
 const NOMS = ["Lit inférieur plan", "Lit supérieur plan et parallèle",
-              "Épaisseur dans la fourchette", "Matière portante", "Emboîtement à droite"];
-const CEL = [0, 1, 2, 3, 4].map(k => document.getElementById("c" + k));
+              "Épaisseur dans la fourchette", "Matière portante",
+              "Faces de joint d'équerre", "Emboîtement avec la voisine"];
+const CEL = [0, 1, 2, 3, 4, 5].map(k => document.getElementById("c" + k));
 let precedent = null;
 
 function afficher() {
-  const { v, score } = mesurer();
-  v.forEach((val, k) => {
+  const m = mesurer();
+  m.v.forEach((val, k) => {
     const el = CEL[k], nm = el.querySelector(".nm"), vl = el.querySelector(".vl"),
           fi = el.querySelector(".fill"), dl = el.querySelector(".dl");
-    if (val === null) {                       // contrainte pas encore active
+    if (val === null) {
       nm.classList.add("off"); vl.textContent = "—"; vl.style.color = "var(--dim)";
       fi.style.width = "0%"; dl.style.opacity = 0; return;
     }
@@ -562,10 +654,10 @@ function afficher() {
     vl.textContent = Math.round(val); vl.style.color = "var(--ink)";
     fi.style.width = val + "%";
     fi.style.background = val > 80 ? "#7fb069" : val > 50 ? "#a8925a" : "#c05c4e";
-    // le feedback doit bouger À CHAQUE COUP : vert si ça monte, rouge si ça descend
+    // le retour doit bouger À CHAQUE COUP : vert si ça monte, rouge si ça descend
     if (precedent && precedent[k] !== null) {
       const d = val - precedent[k];
-      if (Math.abs(d) >= 0.5) {
+      if (Math.abs(d) >= .5) {
         dl.textContent = (d > 0 ? "+" : "") + d.toFixed(0);
         dl.style.color = d > 0 ? "var(--ok)" : "var(--bad)";
         dl.style.transition = "none"; dl.style.opacity = 1; void dl.offsetHeight;
@@ -573,54 +665,68 @@ function afficher() {
       }
     }
   });
-  precedent = v;
-  document.getElementById("gScore").textContent = Math.round(score);
+  precedent = m.v;
+  document.getElementById("gScore").textContent = Math.round(m.score);
   document.getElementById("gMode").textContent = modeMin ? "le maillon faible" : "toutes ensemble";
-
   const s = solvable();
   const al = document.getElementById("alerte");
   al.style.display = s.ok ? "none" : "block";
   if (!s.ok) al.innerHTML = "<b>Plus aucune solution</b> — " + s.pourquoi +
     " Ça ne doit jamais arriver en jeu normal : note-le.";
-  return score;
+  majRoles();
+  return m.score;
+}
+
+// Après deux ou trois rotations on ne sait plus où sont ses lits. On le dit.
+function majRoles() {
+  const dire = f => VISIBLE[f] ? `<b>${NOMFACE[f]}</b>`
+    : `<span class="loin">${NOMFACE[f]} — tourne pour l'atteindre</span>`;
+  document.getElementById("roles").innerHTML =
+    `Lit supérieur : ${dire(litHaut)}<br>Lit inférieur : ${dire(litBas)}<br>Face de joint : ${dire(joint)}`;
 }
 
 function majEntete() {
-  document.getElementById("entete").innerHTML =
-    `Pierre n°${numero} du mur. ` +
-    (voisine
-      ? `Une voisine <b>${voisine.nom}</b> est déjà posée à droite : elle a dépensé une part de la liberté commune. Compose avec.`
-      : `Aucune voisine : le champ est ouvert, presque toutes les pierres conviennent.`);
+  document.getElementById("entete").innerHTML = `Pierre n°${numero} du mur. ` + (voisine
+    ? `Une voisine <b>${voisine.nom}</b> est posée contre la face de joint : elle a dépensé une part de la liberté commune. Compose avec.`
+    : `Aucune voisine : le champ est ouvert, presque toutes les pierres conviennent.`);
 }
 
 /* ---------------- entrées ---------------- */
 let mx = 0, my = 0;
+function relire() {
+  const h = pointer(mx, my);
+  if (h) { survolF = h.f; survolA = h.a; survolB = h.b; } else survolF = -1;
+  majApercu();
+}
 cv.addEventListener("pointermove", e => {
   const r = cv.getBoundingClientRect();
   mx = e.clientX - r.left; my = e.clientY - r.top;
-  const i = pointer(mx, my);
-  if (i !== survol) { survol = i; majApercu(); redessiner = true; }
+  const h = pointer(mx, my);
+  if (!h) { if (survolF !== -1) { survolF = -1; apercu = null; redessiner = true; } return; }
+  if (h.f !== survolF || h.a !== survolA || h.b !== survolB) {
+    survolF = h.f; survolA = h.a; survolB = h.b; majApercu(); redessiner = true;
+  }
 });
-cv.addEventListener("pointerleave", () => { survol = -1; apercu = null; redessiner = true; });
+cv.addEventListener("pointerleave", () => { survolF = -1; apercu = null; redessiner = true; });
 cv.addEventListener("pointerdown", e => {
-  if (e.button !== 0 || survol < 0 || figee) return;
-  frapper(survol % N, (survol / N) | 0);
-  peindrePick(); afficher();
-  survol = pointer(mx, my); majApercu(); redessiner = true;
+  if (e.button !== 0 || survolF < 0 || figee) return;
+  frapper(survolF, survolA, survolB);
+  peindrePick(); afficher(); relire(); redessiner = true;
 });
 
-// aperçu : les colonnes que le coup va attaquer (celles qui dépassent du creux)
+// aperçu : les cubes de surface que le coup va attaquer
 function majApercu() {
-  if (survol < 0 || figee) { apercu = null; return; }
-  const t = OUTILS[outil], cx = survol % N, cy = (survol / N) | 0;
-  const z = []; let creux = Infinity;
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    if (Math.hypot(x - cx, y - cy) > t.rayon) continue;
-    const i = ix(x, y);
-    if (haut[i] - bas[i] <= 0) continue;
-    z.push(i); creux = Math.min(creux, saillie(i));
+  if (survolF < 0 || figee) { apercu = null; return; }
+  const t = OUTILS[outil], f = survolF, [ta, tb] = TAN[f], na = AXE[f], s = new Set();
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    if (Math.hypot(a - survolA, b - survolB) > t.rayon) continue;
+    const d = surface(f, a, b);
+    if (d >= N) continue;
+    const p = [0, 0, 0]; p[ta] = a; p[tb] = b;
+    p[na] = SENS[f] > 0 ? N - 1 - Math.floor(d) : Math.floor(d);
+    s.add(cle(p[0], p[1], p[2]));
   }
-  apercu = new Set(z.filter(i => saillie(i) - creux > 0.001));
+  apercu = s;
 }
 
 document.querySelectorAll(".tool").forEach(b => b.addEventListener("click", () => {
@@ -628,8 +734,13 @@ document.querySelectorAll(".tool").forEach(b => b.addEventListener("click", () =
   document.querySelectorAll(".tool").forEach(o => o.classList.toggle("on", o === b));
   majApercu(); redessiner = true;
 }));
+function pivote(quoi) { quoi(); peindrePick(); afficher(); relire(); redessiner = true; }
+document.getElementById("tourner").addEventListener("click", () => pivote(tourner));
+document.getElementById("basculer").addEventListener("click", () => pivote(basculer));
 window.addEventListener("keydown", e => {
   if (e.key >= "1" && e.key <= "3") document.querySelector(`.tool[data-t="${+e.key - 1}"]`).click();
+  if (e.key === "t" || e.key === "T") pivote(tourner);
+  if (e.key === "b" || e.key === "B") pivote(basculer);
 });
 document.getElementById("force").addEventListener("input", e => {
   force = +e.target.value / 100;
@@ -640,9 +751,6 @@ document.getElementById("mode").addEventListener("click", e => {
   e.target.textContent = "Mode : " + (modeMin ? "minimum (le maillon faible)" : "moyenne pondérée");
   e.target.classList.toggle("on", modeMin);
   afficher();
-});
-document.getElementById("retourner").addEventListener("click", () => {
-  retourne = !retourne; peindrePick(); majApercu(); redessiner = true;
 });
 document.getElementById("silhouette").addEventListener("click", e => {
   repere = !repere;
@@ -655,28 +763,27 @@ document.getElementById("silhouette").addEventListener("click", e => {
 document.getElementById("finir").addEventListener("click", () => {
   if (figee) return;
   figee = true;
-  const { v, score } = mesurer();
-  document.getElementById("sScore").textContent = Math.round(score);
-  document.getElementById("sDetail").innerHTML = v.map((x, k) =>
-    x === null ? "" : `${NOMS[k].padEnd(2)} — <b style="color:#e8dcc4">${Math.round(x)}</b>`)
-    .filter(Boolean).join("<br>");
-  document.getElementById("sVerd").textContent = phrase(v, score);
+  const m = mesurer();
+  document.getElementById("sScore").textContent = Math.round(m.score);
+  document.getElementById("sDetail").innerHTML = m.v.map((x, k) =>
+    x === null ? "" : `${NOMS[k]} — <b style="color:#e8dcc4">${Math.round(x)}</b>`).filter(Boolean).join("<br>");
+  document.getElementById("sVerd").textContent = phrase(m.v, m.score);
   document.getElementById("end").classList.add("on");
 });
 
 // une phrase sur le point FAIBLE — jamais sur la ressemblance à quoi que ce soit
 function phrase(v, score) {
-  const actifs = v.map((x, k) => [x, k]).filter(p => p[0] !== null);
-  const faible = actifs.reduce((a, b) => b[0] < a[0] ? b : a);
+  const act = v.map((x, k) => [x, k]).filter(p => p[0] !== null);
+  const faible = act.reduce((a, b) => b[0] < a[0] ? b : a);
   if (score > 88) return "Elle remplit son office, et proprement. Rien à redire.";
-  const dits = [
-    "les lits ne sont pas d'aplomb : posée, elle bascule.",
+  return "Solide, mais " + [
+    "le lit du dessous n'est pas d'aplomb : posée, elle bascule.",
     "le dessus n'est ni plan ni parallèle — la pierre suivante partira de travers.",
     "l'épaisseur est hors fourchette : trop mince elle casse, trop épaisse elle ne rentre pas.",
     "il ne reste pas assez de matière : elle ne portera pas la charge.",
-    "l'emboîtement à droite est juste : il restera un jour contre la voisine.",
-  ];
-  return "Solide, mais " + dits[faible[1]];
+    "les faces de joint ne sont pas d'équerre : il restera des jours contre les voisines.",
+    "l'emboîtement est juste : il restera un jour contre la voisine.",
+  ][faible[1]];
 }
 
 /* ---------------- la chaîne : la liberté qui se referme ---------------- *
@@ -685,10 +792,14 @@ function phrase(v, score) {
  *  jamais le fermer (voir `solvable`).
  */
 document.getElementById("suivante").addEventListener("click", () => {
-  const h = new Float32Array(N), b = new Float32Array(N);
-  for (let y = 0; y < N; y++) { const i = ix(N - 1, y); h[y] = haut[i]; b[y] = bas[i]; }
-  const nom = ecartMoyen([...b]) > .35 ? "tordue" : "droite";
-  nouvellePierre({ haut: h, bas: b, nom });
+  const p = new Float32Array(N * N);
+  const vus = [];
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const s = surface(joint, a, b);
+    p[a * N + b] = Math.min(s, N);
+    if (s < N) vus.push(s);
+  }
+  nouvellePierre({ p, nom: ecartMoyen(vus) > .35 ? "tordue" : "droite" });
 });
 document.getElementById("tordue").addEventListener("click", () => nouvellePierre(profilTordu, 1));
 document.getElementById("reset").addEventListener("click", () => nouvellePierre(null, 1));
