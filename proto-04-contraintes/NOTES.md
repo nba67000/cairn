@@ -122,15 +122,25 @@ dessous accessibles. Corrigé — **un tailleur dresse six faces.** La pierre es
 maintenant ce qui survit à l'intersection de six coupes, une par face. C'est
 exactement la façon dont on équarrit un bloc.
 
-Deux gestes de chevalet, **Tourner** (T) et **Basculer** (B) : trois faces sont
-sous la main à la fois, les six sont atteignables. La caméra ne bouge jamais.
+**On ne frappe que le dessus** — la face en l'air. Pour en attaquer une autre,
+on **bascule** la pierre. C'est le geste réel, et ça enlève toute ambiguïté :
+plus de clic qui part sur un flanc qu'on ne visait pas.
+
+Deux gestes de chevalet, **Tourner** (T) et **Basculer** (B). Basculer change la
+face du dessus ; tourner fait pivoter les flancs sans y toucher — il faut les
+deux pour atteindre les six faces. La caméra ne bouge jamais.
+
+> Conséquence voulue : tourner la pierre n'est plus une commodité, c'est **le
+> seul moyen** d'atteindre les six faces.
 La pierre **garde ses rôles** à travers les rotations — le panneau dit en
 permanence où sont passés les deux lits et la face de joint, et les lits se
 teintent en froid sur la pierre.
 
-> Vérifié : quatre quarts de tour et quatre basculements ramènent **exactement**
-> à l'état de départ ; les trois rôles peuvent tous être amenés sous la main ;
-> et **6/6 faces sont réellement entamables**.
+> Vérifié : seul le dessus est cliquable (936 points de l'écran, tous sur le
+> dessus) ; quatre quarts de tour et quatre basculements ramènent **exactement**
+> à l'état de départ ; **les six faces peuvent être amenées en l'air** (marquées
+> une à une et retrouvées sur le dessus) ; et les six s'entament réellement une
+> fois là-haut.
 
 ### L'arasement, et les deux angles morts trouvés au test
 

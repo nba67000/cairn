@@ -106,8 +106,10 @@
       <button class="btn" id="basculer">⤾ Basculer <span style="color:var(--dim)">B</span></button>
     </div>
     <p class="roles" id="roles"></p>
-    <p class="note">Trois faces sont sous la main à la fois. Tourne et bascule
-    pour atteindre les six — c'est le geste du chevalet, la caméra ne bouge pas.</p>
+    <p class="note">On ne frappe que <b>le dessus</b> — la face en l'air. Pour en
+    attaquer une autre, <b>bascule</b> la pierre : c'est le geste du chevalet,
+    la caméra ne bouge pas. <b>Tourner</b> fait pivoter les flancs sans changer
+    le dessus.</p>
   </div>
 
   <div class="sect">
@@ -531,7 +533,8 @@ const ordre = [];
 for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) ordre.push([x, y, z]);
 ordre.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]));
 
-let survolF = -1, survolA = 0, survolB = 0, redessiner = true, apercu = null, repere = false;
+// On ne vise QUE le dessus : inutile de retenir une face, il n'y en a qu'une.
+let survol = false, survolA = 0, survolB = 0, redessiner = true, apercu = null, repere = false;
 const cle = (x, y, z) => x * 100 + y * 10 + z;
 
 function dessiner() {
@@ -600,22 +603,23 @@ function dessinerVoisine() {
 }
 
 /* ---------------- pointage ---------------- *
- *  On encode le cube ET la face touchée : sans la face on ne saurait pas
- *  laquelle des six coupes l'outil doit attaquer.
+ *  ON NE FRAPPE QUE LE DESSUS. C'est le geste réel : le tailleur travaille la
+ *  face qui est en l'air, et il RETOURNE la pierre pour en attaquer une autre.
+ *  Les flancs ne sont donc pas cliquables — seul le dessus entre dans le buffer
+ *  de pointage. Conséquence voulue : tourner la pierre n'est plus une commodité,
+ *  c'est le seul moyen d'atteindre les six faces.
  */
+const DESSUS = 4;                              // la face en l'air, en vue iso
+
 function peindrePick() {
   pctx.clearRect(0, 0, cw, ch);
   for (const [x, y, z] of ordre) {
     if (!pierre(x, y, z)) continue;
-    const ex = !pierre(x + 1, y, z), ey = !pierre(x, y + 1, z), ez = !pierre(x, y, z + 1);
-    if (!ex && !ey && !ez) continue;
+    if (!(!pierre(x, y, z + 1))) continue;      // rien d'autre que la face du dessus
     const g0 = grignote(x, y, z);
     const f = faces(x - g0[0], y - g0[1], z - g0[2]);
     const v = cle(x, y, z) + 1;
-    const c = fc => `rgb(${v & 255},${(v >> 8) & 255},${fc + 1})`;
-    if (ez) poly(pctx, f.dessus, c(4), null);
-    if (ey) poly(pctx, f.gauche, c(2), null);
-    if (ex) poly(pctx, f.droite, c(0), null);
+    poly(pctx, f.dessus, `rgb(${v & 255},${(v >> 8) & 255},200)`, null);
   }
 }
 function pointer(px, py) {
@@ -624,12 +628,12 @@ function pointer(px, py) {
   const d = pctx.getImageData(px - 2, py - 2, 5, 5).data;
   for (const k of [12, 6, 8, 16, 18, 0, 4, 20, 24]) {
     const o = k * 4;
-    if (d[o + 3] < 200 || d[o + 2] === 0) continue;
-    const v = (d[o] | (d[o + 1] << 8)) - 1, f = d[o + 2] - 1;
-    if (v < 0 || v > 999 || f < 0 || f > 5) continue;
+    if (d[o + 3] < 200 || d[o + 2] < 150) continue;
+    const v = (d[o] | (d[o + 1] << 8)) - 1;
+    if (v < 0 || v > 999) continue;
     const p = [(v / 100) | 0, ((v / 10) | 0) % 10, v % 10];
-    const [ta, tb] = TAN[f];
-    return { f, a: p[ta], b: p[tb] };
+    const [ta, tb] = TAN[DESSUS];
+    return { f: DESSUS, a: p[ta], b: p[tb] };
   }
   return null;
 }
@@ -695,29 +699,30 @@ function majEntete() {
 let mx = 0, my = 0;
 function relire() {
   const h = pointer(mx, my);
-  if (h) { survolF = h.f; survolA = h.a; survolB = h.b; } else survolF = -1;
+  survol = !!h;
+  if (h) { survolA = h.a; survolB = h.b; }
   majApercu();
 }
 cv.addEventListener("pointermove", e => {
   const r = cv.getBoundingClientRect();
   mx = e.clientX - r.left; my = e.clientY - r.top;
   const h = pointer(mx, my);
-  if (!h) { if (survolF !== -1) { survolF = -1; apercu = null; redessiner = true; } return; }
-  if (h.f !== survolF || h.a !== survolA || h.b !== survolB) {
-    survolF = h.f; survolA = h.a; survolB = h.b; majApercu(); redessiner = true;
+  if (!h) { if (survol) { survol = false; apercu = null; redessiner = true; } return; }
+  if (!survol || h.a !== survolA || h.b !== survolB) {
+    survol = true; survolA = h.a; survolB = h.b; majApercu(); redessiner = true;
   }
 });
-cv.addEventListener("pointerleave", () => { survolF = -1; apercu = null; redessiner = true; });
+cv.addEventListener("pointerleave", () => { survol = false; apercu = null; redessiner = true; });
 cv.addEventListener("pointerdown", e => {
-  if (e.button !== 0 || survolF < 0 || figee) return;
-  frapper(survolF, survolA, survolB);
+  if (e.button !== 0 || !survol || figee) return;
+  frapper(DESSUS, survolA, survolB);          // toujours le dessus, jamais un flanc
   peindrePick(); afficher(); relire(); redessiner = true;
 });
 
-// aperçu : les cubes de surface que le coup va attaquer
+// aperçu : les cubes du dessus que le coup va attaquer
 function majApercu() {
-  if (survolF < 0 || figee) { apercu = null; return; }
-  const t = OUTILS[outil], f = survolF, [ta, tb] = TAN[f], na = AXE[f], s = new Set();
+  if (!survol || figee) { apercu = null; return; }
+  const t = OUTILS[outil], f = DESSUS, [ta, tb] = TAN[f], na = AXE[f], s = new Set();
   for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
     if (Math.hypot(a - survolA, b - survolB) > t.rayon) continue;
     const d = surface(f, a, b);
