@@ -142,6 +142,48 @@ teintent en froid sur la pierre.
 > une à une et retrouvées sur le dessus) ; et les six s'entament réellement une
 > fois là-haut.
 
+### Le martelage : on maintient, l'outil frappe en cadence
+
+Demandé, et déjà validé au Proto 1 sous le nom « maintiens et balaie » — c'est
+là que le *frisson est présent* avait été prononcé. Le clic maintenu fait
+frapper l'outil en continu (3,6 coups/s à la chasse, 11 au ciseau), et on balaie
+pour promener le fer. Éclats et secousse à chaque coup : le brief donne la
+priorité absolue au ressenti, et un coup qui ne fait rien voir ne se sent pas.
+
+**Ce que le débit continu a obligé à revoir.** Tirer onze fois par seconde n'est
+pas tirer une fois : les intensités ont été divisées par trois. Mais la première
+version mesurée donnait **le ciseau à 0,0 cube/s et 152 s pour dégrossir** — le
+geste était inutilisable.
+
+Cause de fond, et elle est plus intéressante qu'un réglage : mon seuil « la zone
+est-elle plane ? » était à 0,02. Avec le grain de la chasse, la zone n'est
+*jamais* plane à ce niveau — l'outil passait donc son temps à araser des
+micro-bosses au lieu d'abaisser, sans jamais descendre.
+
+La vraie réponse est physique : **un fer large ne sent pas le relief fin.** Chaque
+outil a maintenant un **seuil de sensibilité** — au-dessus, il arase ; en dessous,
+il ne sent rien, passe au-dessus et prend un copeau franc.
+
+| Outil | Seuil | Débit | Ce qu'il fait |
+|---|---|---|---|
+| Chasse | 0,70 | **17 cubes/s** | abaisse vite, laisse du grain |
+| Pointe | 0,32 | 7,3 | approche |
+| Ciseau | 0,10 | 2,7 | n'abaisse presque pas, **lisse** |
+
+La progression des outils sort donc de leur *finesse*, pas d'un réglage de
+quantité. Dégrossir un lit : **17 s de maintien** au lieu de 152. Et le ciseau
+lisse enfin — écart moyen 0,234 → 0,069.
+
+> Vérifié en pilotant les vrais écouteurs : 2 s de maintien à la chasse ôtent
+> 17 cubes, et **0 cube après avoir lâché**. Le recalcul des six contraintes
+> coûte 0,39 ms ; il est bridé à 14 fois par seconde, l'œil ne distingue pas
+> mieux.
+
+Session complète, comptée en secondes de maintien : bloc brut **67** → chasse sur
+le dessus 16 s **91** → pointe et ciseau sur les deux lits **93**. Et le risque
+est réel : un bot qui maintient sans regarder ses jauges passe **sous la cote**,
+irréversiblement.
+
 ### L'arasement, et les deux angles morts trouvés au test
 
 Codé avant toute mesure de planéité. Dans le rayon de l'outil : on repère le

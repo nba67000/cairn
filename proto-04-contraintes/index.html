@@ -95,7 +95,9 @@
       <span>Force du coup</span><span id="forceTxt" style="font:12px ui-monospace,Consolas,monospace;color:var(--ink)">50</span>
     </div>
     <input type="range" id="force" min="10" max="100" value="50">
-    <p class="note">L'outil <b>arase</b> : il mord ce qui dépasse et épargne les creux.
+    <p class="note"><b>Maintiens le clic</b> : l'outil frappe en cadence et rabote
+    tant que tu appuies. Balaie pour promener le fer.</p>
+    <p class="note">Il <b>arase</b> : il mord ce qui dépasse et épargne les creux.
     Taper sur une bosse la couche peu à peu — la planéité se <b>gagne</b>.</p>
   </div>
 
@@ -279,10 +281,20 @@ const basculer = () => pivoter((x, y, z) => [x, N - 1 - z, y]);
  *  MANIÈRE : rayon d'action et intensité d'arasement. Le grain fait que la
  *  chasse laisse une surface irrégulière — et peut créer de nouvelles bosses.
  */
+/*  `cadence` = coups par seconde tant qu'on maintient le clic. Les intensités
+ *  sont donc bien plus basses qu'au coup par coup : c'est le DÉBIT qui compte.
+ *
+ *  `seuil` = le relief en dessous duquel l'outil ne sent plus rien. C'est ce qui
+ *  distingue vraiment les trois fers, et c'est physique : une chasse large ne
+ *  peut pas suivre une ondulation d'un tiers de cube — elle passe dessus et
+ *  prend un copeau franc. Un ciseau étroit, si : il va chercher la bosse.
+ *  Conséquence : la chasse ABAISSE vite en laissant du grain, le ciseau
+ *  n'abaisse presque pas mais LISSE. La progression des outils sort de là,
+ *  pas d'un réglage de quantité.  */
 const OUTILS = [
-  { nom: "Chasse", rayon: 2.8, intensite: .55, grain: .85 },
-  { nom: "Pointe", rayon: 1.7, intensite: .34, grain: .35 },
-  { nom: "Ciseau", rayon: 1.0, intensite: .22, grain: .06 },
+  { nom: "Chasse", rayon: 2.8, intensite: .38, cadence: 3.6, seuil: .70, grain: .85 },
+  { nom: "Pointe", rayon: 1.7, intensite: .22, cadence: 6.5, seuil: .32, grain: .35 },
+  { nom: "Ciseau", rayon: 1.0, intensite: .10, cadence: 11,  seuil: .10, grain: .06 },
 ];
 let outil = 0, force = .5;
 
@@ -315,13 +327,16 @@ function frapper(f, ca, cb) {
     }
   if (!zone.length) return 0;
 
-  // La règle proportionnelle a un angle mort : sur une zone déjà de niveau,
-  // rien ne dépasse, donc rien ne serait ôté — on ne pourrait même pas
-  // dégrossir un bloc neuf. Un vrai fer, lui, prend un copeau franc sur toute
-  // son emprise quand la surface est plane. Deux régimes, donc, pas un
-  // compromis entre les deux.
+  // Deux régimes, et c'est le SEUIL de l'outil qui décide lequel s'applique.
+  //  · relief au-dessus du seuil : l'outil le sent, il arase — proportionnel,
+  //    et il n'effleure même pas le fond du creux.
+  //  · relief en dessous : il ne le sent pas, il passe dessus et prend un
+  //    copeau franc sur toute son emprise. C'est ce qui permet d'ABAISSER.
+  // Sans ce seuil, le grain de la chasse recrée du relief à chaque coup et
+  // l'outil passe son temps à poursuivre des micro-bosses sans jamais
+  // descendre : mesuré, dégrossir prenait alors deux minutes et demie.
   const relief = zone.reduce((m, z) => Math.max(m, z[3] - saillant), 0);
-  const arase = relief > .02;
+  const arase = relief > t.seuil;
 
   let ote = 0;
   for (const [a, b, d, s] of zone) {
@@ -535,6 +550,9 @@ ordre.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]));
 
 // On ne vise QUE le dessus : inutile de retenir une face, il n'y en a qu'une.
 let survol = false, survolA = 0, survolB = 0, redessiner = true, apercu = null, repere = false;
+// le maintien : l'outil frappe en cadence tant que le bouton est enfoncé
+let martelle = false, tapAcc = 0, tPrev = 0, dernierCalcul = 0, secousse = 0;
+const copeaux = [];
 const cle = (x, y, z) => x * 100 + y * 10 + z;
 
 function dessiner() {
@@ -714,10 +732,11 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => { survol = false; apercu = null; redessiner = true; });
 cv.addEventListener("pointerdown", e => {
-  if (e.button !== 0 || !survol || figee) return;
-  frapper(DESSUS, survolA, survolB);          // toujours le dessus, jamais un flanc
-  peindrePick(); afficher(); relire(); redessiner = true;
+  if (e.button !== 0 || figee) return;
+  cv.setPointerCapture(e.pointerId);
+  martelle = true; tapAcc = 1;                // le premier coup part tout de suite
 });
+window.addEventListener("pointerup", () => { martelle = false; tapAcc = 0; });
 
 // aperçu : les cubes du dessus que le coup va attaquer
 function majApercu() {
@@ -819,11 +838,72 @@ function nouvellePierre(v, n) {
   majEntete(); peindrePick(); afficher(); majApercu(); redessiner = true;
 }
 
+/* ---------------- les copeaux et la secousse ---------------- *
+ *  Rien de décoratif : le brief donne la priorité absolue au RESSENTI du geste.
+ *  Un coup qui ne fait rien voir ne se sent pas.  */
+function posEcran(a, b) {
+  const [ta, tb] = TAN[DESSUS], p = [0, 0, 0];
+  p[ta] = a; p[tb] = b;
+  p[AXE[DESSUS]] = N - 1 - Math.min(prof(DESSUS, a, b), N - 1);
+  return [sx(p[0], p[1]), sy(p[0], p[1], p[2])];
+}
+function jeter(n) {
+  const [px, py] = posEcran(survolA, survolB);
+  for (let k = 0; k < n; k++)
+    copeaux.push({ x: px + (Math.random() - .5) * TW * .6, y: py + (Math.random() - .5) * TZ * .5,
+      vx: (Math.random() - .5) * 170, vy: -50 - Math.random() * 120,
+      s: TW * (.035 + Math.random() * .05), a: Math.random() * 6.28,
+      va: (Math.random() - .5) * 14, t: 0, vie: .35 + Math.random() * .35 });
+}
+function bougerCopeaux(dt) {
+  for (let k = copeaux.length - 1; k >= 0; k--) {
+    const c = copeaux[k];
+    c.t += dt;
+    if (c.t >= c.vie) { copeaux.splice(k, 1); continue; }
+    c.x += c.vx * dt; c.y += c.vy * dt; c.vy += 900 * dt; c.a += c.va * dt;
+  }
+}
+function dessinerCopeaux() {
+  for (const c of copeaux) {
+    ctx.globalAlpha = Math.max(0, 1 - c.t / c.vie);
+    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.a);
+    ctx.fillStyle = "rgb(150,144,130)";
+    ctx.fillRect(-c.s, -c.s * .7, c.s * 2, c.s * 1.4);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
 /* ---------------- boucle ---------------- */
-function boucle() {
+function boucle(now) {
   requestAnimationFrame(boucle);
+  const dt = Math.min(.05, (now - tPrev) / 1000 || 0); tPrev = now;
+
+  // MARTELER : tant qu'on maintient, l'outil frappe en cadence. C'est le geste
+  // du Proto 1, validé en partie — et ce qui rend le travail continu plutôt
+  // qu'une suite de clics.
+  let coups = 0;
+  if (martelle && survol && !figee) {
+    tapAcc += dt * OUTILS[outil].cadence;
+    while (tapAcc >= 1 && coups < 4) { tapAcc -= 1; frapper(DESSUS, survolA, survolB); coups++; }
+  }
+  if (coups) {
+    jeter(1 + coups);
+    secousse = Math.max(secousse, .7 + OUTILS[outil].intensite * 5);
+    // Recalculer six contraintes à 11 coups/s coûterait cher pour rien : l'œil
+    // ne distingue pas mieux que ~14 fois par seconde. On bride là.
+    if (now - dernierCalcul > 70) { peindrePick(); relire(); afficher(); dernierCalcul = now; }
+    redessiner = true;
+  }
+
+  if (copeaux.length) { bougerCopeaux(dt); redessiner = true; }
+  if (secousse > .05) {
+    secousse *= Math.pow(.02, dt * 6);
+    cv.style.transform = `translate(${(Math.random() - .5) * secousse}px,${(Math.random() - .5) * secousse}px)`;
+  } else if (secousse) { secousse = 0; cv.style.transform = ""; }
+
   if (!redessiner) return;
-  dessiner(); redessiner = false;
+  dessiner(); dessinerCopeaux(); redessiner = false;
 }
 
 nouvellePierre(null, 1);
